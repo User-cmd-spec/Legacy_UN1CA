@@ -1,4 +1,4 @@
-id=samsungpropshooks
-name=Samsung Props Hooks
-author=salvogiangri
-description=Prop patches for software/hardware incompatibilities.
+id=hooks
+name=Framework hooks
+author=salvogiangri, ata-kaner, @utkustnr
+description=Framework hooks for spoofing
