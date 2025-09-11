@@ -4,7 +4,7 @@
         device/qcom/qssi/framework_manifest.xml
         vendor/samsung/frameworks/interfaces/security/ucm/crypto/1.0/manifest.xml
 -->
-<manifest version="8.0" type="framework">
+<manifest version="9.0" type="framework">
     <hal format="hidl" max-level="6">
         <name>android.frameworks.displayservice</name>
         <transport>hwbinder</transport>
