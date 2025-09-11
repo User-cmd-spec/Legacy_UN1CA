@@ -1,18 +1,18 @@
-From 12cbcead8b0c27e6b306269d50a224dcb2e448ee Mon Sep 17 00:00:00 2001
+From 7190f7182848e12da43572e2d300a5d61ff55c5d Mon Sep 17 00:00:00 2001
 From: tisenu100 <tisenu100@github.com>
-Date: Mon Apr 28 10:20:58 2025 +0300
+Date: Thu Sep 11 11:11:03 2025 +0300
 Subject: [PATCH] Remove SSRM Warning
 
 ---
 
-diff --git a/smali/S1/P.smali b/smali/S1/P.smali
-index 6975731..b428743 100644
---- a/smali/S1/P.smali
-+++ b/smali/S1/P.smali
-@@ -77,56 +77,8 @@
+diff --git a/smali/U1/S.smali b/smali/U1/S.smali
+index 11cd059..f3dca4d 100644
+--- a/smali/U1/S.smali
++++ b/smali/U1/S.smali
+@@ -131,54 +131,7 @@
  .end method
  
- .method public static B(Landroid/content/Context;Ljava/lang/String;)V
+ .method public static D(Landroid/content/Context;Ljava/lang/String;)V
 -    .locals 1
 -
 -    if-eqz p0, :cond_0
@@ -31,9 +31,9 @@ index 6975731..b428743 100644
 -
 -    invoke-virtual {v0, p1}, Landroid/app/AlertDialog$Builder;->setMessage(Ljava/lang/CharSequence;)Landroid/app/AlertDialog$Builder;
 -
--    new-instance p0, LS1/L;
+-    new-instance p0, LU1/N;
 -
--    invoke-direct {p0}, LS1/L;-><init>()V
+-    invoke-direct {p0}, LU1/N;-><init>()V
 -
 -    const-string p1, "I got it"
 -
@@ -53,17 +53,16 @@ index 6975731..b428743 100644
 -
 -    invoke-virtual {p0}, Landroid/app/AlertDialog;->show()V
 -
--    goto :goto_0
+-    return-void
 -
 -    :cond_0
--    sget-object p0, LS1/P;->a:Ljava/lang/String;
+-    sget-object p0, LU1/S;->a:Ljava/lang/String;
 -
 -    const-string p1, "showAlert - context is null"
 -
--    invoke-static {p0, p1}, LS1/B;->b(Ljava/lang/String;Ljava/lang/String;)V
+-    invoke-static {p0, p1}, LU1/B;->b(Ljava/lang/String;Ljava/lang/String;)V
 +    .locals 0
  
--    :goto_0
      return-void
  .end method
 
