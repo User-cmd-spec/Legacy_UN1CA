@@ -12,6 +12,9 @@ DELETE_FROM_WORK_DIR "system" "system/framework/arm64"
 for f in $(find "$WORK_DIR/system/system/framework" -type f -name "*.vdex"); do
     DELETE_FROM_WORK_DIR "system" "${f//$WORK_DIR\/system\//}"
 done
+for f in $(find "$WORK_DIR/system/system/framework" -type f -name "*.fsv_meta"); do
+    DELETE_FROM_WORK_DIR "system" "${f//$WORK_DIR\/system\//}"
+done
 if $TARGET_HAS_SYSTEM_EXT; then
     for f in $(find "$WORK_DIR/system_ext" -type d -name "oat"); do
         DELETE_FROM_WORK_DIR "system_ext" "${f//$WORK_DIR\/system_ext\//}"
