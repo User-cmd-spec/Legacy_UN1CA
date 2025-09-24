@@ -22,7 +22,7 @@ cat "$FW_DIR/${MODEL}_${REGION}/fs_config-system" | grep -F "system/lib/" >> "$W
 cat "$FW_DIR/${MODEL}_${REGION}/file_context-system" | grep -F "system/lib/" >> "$WORK_DIR/configs/file_context-system"
 
 # System_ext libraries
-cp -a --preserve=all "$FW_DIR/${MODEL}_${REGION}/system/system/system_ext/lib" "$WORK_DIR/system/system/system_ext"
+cp -a --preserve=all "$FW_DIR/${MODEL}_${REGION}/system_ext/lib" "$WORK_DIR/system/system/system_ext"
 cp $FW_DIR/${MODEL}_${REGION}/fs_config-system_ext $FW_DIR/${MODEL}_${REGION}/fs_config-system_ext_tmp
 cp $FW_DIR/${MODEL}_${REGION}/file_context-system_ext $FW_DIR/${MODEL}_${REGION}/file_context-system_ext_tmp
 
