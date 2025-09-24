@@ -1,6 +1,6 @@
-From a12a1a2a176b5a3876b8b69f56d0caad63a39935 Mon Sep 17 00:00:00 2001
+From 4851b020ea263073cca1f742db58129a68b38c48 Mon Sep 17 00:00:00 2001
 From: Salvo Giangreco <giangrecosalvo9@gmail.com>
-Date: Mon Apr 28 10:45:47 2025 +0300
+Date: Wed Sep 24 20:33:37 2025 +0300
 Subject: [PATCH] Introduce PlayIntegrityHooks
 
 ---
@@ -15,76 +15,40 @@ Subject: [PATCH] Introduce PlayIntegrityHooks
  create mode 100644 smali_classes6/io/mesalabs/unica/PlayIntegrityHooks.smali
 
 diff --git a/smali/android/app/Instrumentation.smali b/smali/android/app/Instrumentation.smali
-index 6c24fd2e..84188afc 100644
+index 82c86f26..fe9c6c23 100644
 --- a/smali/android/app/Instrumentation.smali
 +++ b/smali/android/app/Instrumentation.smali
-@@ -788,6 +788,8 @@
+@@ -746,6 +746,8 @@
  
-     invoke-virtual {v0, p1}, Landroid/app/Application;->attach(Landroid/content/Context;)V
+     invoke-virtual {p0, p1}, Landroid/app/Application;->attach(Landroid/content/Context;)V
  
 +    invoke-static {p1}, Lio/mesalabs/unica/PlayIntegrityHooks;->setProps(Landroid/content/Context;)V
 +
-     return-object v0
+     return-object p0
  .end method
  
-@@ -4927,6 +4929,8 @@
+@@ -4336,6 +4338,8 @@
  
-     invoke-virtual {v0, p3}, Landroid/app/Application;->attach(Landroid/content/Context;)V
+     invoke-virtual {p0, p3}, Landroid/app/Application;->attach(Landroid/content/Context;)V
  
 +    invoke-static {p3}, Lio/mesalabs/unica/PlayIntegrityHooks;->setProps(Landroid/content/Context;)V
 +
-     return-object v0
+     return-object p0
  .end method
  
 diff --git a/smali_classes3/android/security/keystore2/AndroidKeyStoreSpi.smali b/smali_classes3/android/security/keystore2/AndroidKeyStoreSpi.smali
-index 1bbcc983..9a0c527e 100644
+index c724b464..0579bc5c 100644
 --- a/smali_classes3/android/security/keystore2/AndroidKeyStoreSpi.smali
 +++ b/smali_classes3/android/security/keystore2/AndroidKeyStoreSpi.smali
-@@ -3974,6 +3974,8 @@
+@@ -3223,6 +3223,8 @@
  .method public whitelist test-api engineGetCertificateChain(Ljava/lang/String;)[Ljava/security/cert/Certificate;
-     .locals 9
+     .locals 4
  
 +    invoke-static {}, Lio/mesalabs/unica/PlayIntegrityHooks;->onEngineGetCertificateChain()V
 +
      invoke-direct {p0, p1}, Landroid/security/keystore2/AndroidKeyStoreSpi;->getKeyMetadata(Ljava/lang/String;)Landroid/system/keystore2/KeyEntryResponse;
  
-     move-result-object v0
-diff --git a/smali_classes6/io/mesalabs/unica/PlayIntegrityHooks$$ExternalSyntheticLambda0.smali b/smali_classes6/io/mesalabs/unica/PlayIntegrityHooks$$ExternalSyntheticLambda0.smali
-new file mode 100644
-index 00000000..807bf498
---- /dev/null
-+++ b/smali_classes6/io/mesalabs/unica/PlayIntegrityHooks$$ExternalSyntheticLambda0.smali
-@@ -0,0 +1,30 @@
-+.class public final synthetic Lio/mesalabs/unica/PlayIntegrityHooks$$ExternalSyntheticLambda0;
-+.super Ljava/lang/Object;
-+.source "D8$$SyntheticClass"
-+
-+# interfaces
-+.implements Ljava/util/function/Predicate;
-+
-+
-+# direct methods
-+.method public synthetic constructor blacklist <init>()V
-+    .locals 0
-+
-+    invoke-direct {p0}, Ljava/lang/Object;-><init>()V
-+
-+    return-void
-+.end method
-+
-+
-+# virtual methods
-+.method public final whitelist test-api test(Ljava/lang/Object;)Z
-+    .locals 0
-+
-+    check-cast p1, Ljava/lang/StackTraceElement;
-+
-+    invoke-static {p1}, Lio/mesalabs/unica/PlayIntegrityHooks;->lambda$isCallerSafetyNet$0(Ljava/lang/StackTraceElement;)Z
-+
-+    move-result p0
-+
-+    return p0
-+.end method
+     move-result-object p0
 diff --git a/smali_classes6/io/mesalabs/unica/PlayIntegrityHooks$1.smali b/smali_classes6/io/mesalabs/unica/PlayIntegrityHooks$1.smali
 new file mode 100644
 index 00000000..fe159605
