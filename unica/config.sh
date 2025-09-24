@@ -16,9 +16,9 @@
 #
 
 # UN1CA configuration file
-ROM_VERSION="2.5.6"
+ROM_VERSION="2.5.6+"
 ROM_VERSION+="-$(git rev-parse --short HEAD)"
-ROM_CODENAME="Eureka"
+ROM_CODENAME="Cafewebs"
 
 # Source ROM firmware
 
