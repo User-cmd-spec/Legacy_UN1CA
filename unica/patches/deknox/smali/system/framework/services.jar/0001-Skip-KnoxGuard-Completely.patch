@@ -1,24 +1,24 @@
-From 81e913da8f82a68724ea7f30cd7c827801cf39f8 Mon Sep 17 00:00:00 2001
+From 5b7d6d116de49a5614cb0a370ba6aaaeeee3ae41 Mon Sep 17 00:00:00 2001
 From: tisenu100 <tisenu100@github.com>
-Date: Tue May 6 21:23:54 2025 +0300
+Date: Thu Sep 25 10:57:47 2025 +0300
 Subject: [PATCH] Skip KnoxGuard Completely
 
 ---
-
 diff --git a/smali/com/android/server/SystemServer.smali b/smali/com/android/server/SystemServer.smali
-index d050c87..83cb567 100644
+index 8a116690..39d86f3a 100644
 --- a/smali/com/android/server/SystemServer.smali
 +++ b/smali/com/android/server/SystemServer.smali
-@@ -10008,9 +10008,7 @@
+@@ -9839,9 +9839,7 @@
  
-     invoke-virtual/range {p1 .. p1}, Landroid/util/TimingsTraceLog;->traceEnd()V
+     invoke-virtual {v2}, Landroid/util/TimingsTraceLog;->traceEnd()V
  
 -    invoke-static {}, Landroid/os/FactoryTest;->isFactoryBinary()Z
 -
--    move-result v3
-+    const/4 v3, 0x1
+-    move-result v0
++    const/4 v0, 0x1
  
-     if-nez v3, :cond_3c
+     if-nez v0, :cond_11d0
  
+
 -- 
 2.48.1
