@@ -37,7 +37,6 @@ overlay/GmsConfigOverlaySearchSelector.apk
 priv-app/SearchSelector
 "
 SYSTEM_DEBLOAT+="
-system/app/AutomationTest_FB
 system/app/DRParser
 system/app/FactoryAirCommandManager
 system/app/FactoryCameraFB
@@ -93,7 +92,7 @@ system/priv-app/AuthFramework
 system/priv-app/AvatarEmojiSticker
 system/priv-app/BCService
 system/priv-app/DeviceKeystring
-system/priv-app/DiagMonAgent94
+system/priv-app/DiagMonAgent95
 system/priv-app/DigitalKey
 system/priv-app/FBInstaller_NS
 system/priv-app/FBServices
@@ -105,7 +104,7 @@ system/priv-app/OneDrive_Samsung_v3
 system/priv-app/PaymentFramework
 system/priv-app/SEMFactoryApp
 system/priv-app/OMCAgent5
-system/priv-app/SOAgent75
+system/priv-app/SOAgent76
 system/priv-app/SamsungCarKeyFw
 system/priv-app/SamsungPass
 system/priv-app/SmartEpdgTestApp
