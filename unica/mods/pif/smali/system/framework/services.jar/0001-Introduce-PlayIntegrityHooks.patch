@@ -1,6 +1,6 @@
-From c635aae0c193e5bcc3b5f050d1dfe8152f56c320 Mon Sep 17 00:00:00 2001
+From c5abecbcf34e16ee43069b91959f56c60477e948 Mon Sep 17 00:00:00 2001
 From: BlackMesa123 <giangrecosalvo9@gmail.com>
-Date: Wed Sep 24 22:58:25 2025 +0300
+Date: Mon Sep 29 22:23:30 2025 +0300
 Subject: [PATCH] Introduce PlayIntegrityHooks
 
 ---
@@ -8,7 +8,7 @@ Subject: [PATCH] Introduce PlayIntegrityHooks
  1 file changed, 20 insertions(+), 2 deletions(-)
 
 diff --git a/smali_classes2/com/android/server/wm/ActivityTaskManagerService.smali b/smali_classes2/com/android/server/wm/ActivityTaskManagerService.smali
-index 2236d742..0151113e 100644
+index e89c9223..9c2f8ee5 100644
 --- a/smali_classes2/com/android/server/wm/ActivityTaskManagerService.smali
 +++ b/smali_classes2/com/android/server/wm/ActivityTaskManagerService.smali
 @@ -6764,12 +6764,21 @@
@@ -57,6 +57,7 @@ index 2236d742..0151113e 100644
      iget-object p0, p0, Lcom/android/server/wm/ActivityTaskManagerService;->mTaskChangeNotificationController:Lcom/android/server/wm/TaskChangeNotificationController;
  
      invoke-virtual {p0}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
+
 -- 
 2.46.0
 
