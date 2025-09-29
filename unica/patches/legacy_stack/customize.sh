@@ -36,6 +36,8 @@ echo "/system/system_ext/lib u:object_r:system_lib_file:s0" >> "$WORK_DIR/config
 
 echo "Adding Legacy WFD"
 echo "Adding Legacy VNDK"
-ADD_TO_WORK_DIR "r9qxxx" "system" "system" 0 0 644 "u:object_r:system_file:s0"
+ADD_TO_WORK_DIR "r9qxxx" "system" "bin" 0 2000 751 "u:object_r:system_file:s0"
+ADD_TO_WORK_DIR "r9qxxx" "system" "lib" 0 0 755 "u:object_r:system_lib_file:s0"
+ADD_TO_WORK_DIR "r9qxxx" "system" "system_ext" 0 0 755 "u:object_r:system_file:s0"
 
 echo "Legacy stack was applied successfully!"
