@@ -33,10 +33,15 @@ index fe9c6c23..a2e0c33e 100644
  
      return-object p0
 diff --git a/smali_classes3/android/os/SystemProperties.smali b/smali_classes3/android/os/SystemProperties.smali
-index 3af84b7b..d7a2cf29 100644
+index 3af84b7b..6a9da926 100644
 --- a/smali_classes3/android/os/SystemProperties.smali
 +++ b/smali_classes3/android/os/SystemProperties.smali
-@@ -377,10 +377,17 @@
+@@ -373,26 +373,40 @@
+ .end method
+ 
+ .method public static whitelist get(Ljava/lang/String;)Ljava/lang/String;
+-    .locals 0
++    .locals 1
      .annotation runtime Landroid/annotation/SystemApi;
      .end annotation
  
@@ -54,7 +59,9 @@ index 3af84b7b..d7a2cf29 100644
      return-object p0
  .end method
  
-@@ -389,10 +396,17 @@
+ .method public static whitelist get(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+-    .locals 0
++    .locals 1
      .annotation runtime Landroid/annotation/SystemApi;
      .end annotation
  
