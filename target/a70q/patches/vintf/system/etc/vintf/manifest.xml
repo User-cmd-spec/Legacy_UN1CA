@@ -19,12 +19,12 @@
         <name>android.frameworks.sensorservice</name>
         <fqname>ISensorManager/default</fqname>
     </hal>
-    <hal format="hidl">
+    <hal format="hidl" max-level="8">
         <name>android.frameworks.sensorservice</name>
         <transport>hwbinder</transport>
         <fqname>@1.0::ISensorManager/default</fqname>
     </hal>
-    <hal format="hidl">
+    <hal format="hidl" max-level="8">
         <name>android.hidl.memory</name>
         <transport arch="32+64">passthrough</transport>
         <fqname>@1.0::IMapper/ashmem</fqname>
@@ -43,12 +43,12 @@
         <name>netutils-wrapper</name>
         <version>1.0</version>
     </hal>
-    <hal format="hidl">
+    <hal format="hidl" max-level="6">
         <name>vendor.qti.hardware.radio.atcmdfwd</name>
         <transport>hwbinder</transport>
         <fqname>@1.0::IAtCmdFwd/AtCmdFwdService</fqname>
     </hal>
-    <hal format="hidl">
+    <hal format="hidl" max-level="8">
         <name>vendor.qti.hardware.systemhelper</name>
         <transport>hwbinder</transport>
         <fqname>@1.0::ISystemEvent/default</fqname>
@@ -66,5 +66,7 @@
         <version>32</version>
         <version>33</version>
         <version>34</version>
+        <version>35</version>
+        <version>36</version>
     </system-sdk>
 </manifest>
