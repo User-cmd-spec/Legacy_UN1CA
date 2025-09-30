@@ -2,7 +2,6 @@
 
 DECODE_APK "system/framework/esecomm.jar"
 DECODE_APK "system/framework/services.jar"
-DECODE_APK "system/framework/ssrm.jar"
 DECODE_APK "system/priv-app/SecSettings/SecSettings.apk"
 DECODE_APK "system/framework/framework.jar"
 DECODE_APK "system/framework/gamemanager.jar"
@@ -73,14 +72,6 @@ system/framework/framework.jar/smali_classes6/com/samsung/android/camera/mic/Sem
 "
 for f in $FTP; do
 sed -i "s/08020/07002/g" "$APKTOOL_DIR/$f"
-done
-
-echo "Applying SSRM patches"
-FTP="
-system/framework/ssrm.jar/smali/com/android/server/ssrm/Feature.smali
-"
-for f in $FTP; do
-sed -i "s/siop_a36xq_sm6475/ssrm_default/g" "$APKTOOL_DIR/$f"
 done
 
 
