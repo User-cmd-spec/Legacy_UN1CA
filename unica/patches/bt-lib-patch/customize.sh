@@ -15,5 +15,6 @@ if [ ! -f "$WORK_DIR/system/system/lib64/libbluetooth_jni.so" ]; then
     SET_METADATA "system" "system/lib64/libbluetooth_jni.so" 0 0 644 "u:object_r:system_lib_file:s0"
 fi
 
+#https://github.com/3arthur6/BluetoothLibraryPatcher/blob/master/hexpatch.sh#L12
 HEX_PATCH "$WORK_DIR/system/system/lib64/libbluetooth_jni.so" \
-    "40f706f921ccffb021103691f5a304a9" "1f2003d521ccffb021103691f5a304a9"
+    "00122a0140395f01086b00020054" "00122a0140395f01086bde030014"
