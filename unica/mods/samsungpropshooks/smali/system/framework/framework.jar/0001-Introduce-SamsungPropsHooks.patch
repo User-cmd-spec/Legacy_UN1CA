@@ -1,6 +1,6 @@
-From 00b225bd826148df389cc029eb0d0b49e6b3672b Mon Sep 17 00:00:00 2001
+From 98575f870395e86c44a7dc7fddd51e07a2a72212 Mon Sep 17 00:00:00 2001
 From: Salvo Giangreco <giangrecosalvo9@gmail.com>
-Date: Wed Sep 24 23:04:36 2025 +0300
+Date: Thu Oct 2 13:28:10 2025 +0300
 Subject: [PATCH] Introduce SamsungPropsHooks
 
 ---
@@ -11,7 +11,7 @@ Subject: [PATCH] Introduce SamsungPropsHooks
  create mode 100644 smali_classes6/io/mesalabs/unica/SamsungPropsHooks.smali
 
 diff --git a/smali/android/app/Instrumentation.smali b/smali/android/app/Instrumentation.smali
-index fe9c6c23..a2e0c33e 100644
+index 82c86f26..7d00408e 100644
 --- a/smali/android/app/Instrumentation.smali
 +++ b/smali/android/app/Instrumentation.smali
 @@ -746,6 +746,8 @@
@@ -20,18 +20,17 @@ index fe9c6c23..a2e0c33e 100644
  
 +    invoke-static {p1}, Lio/mesalabs/unica/SamsungPropsHooks;->init(Landroid/content/Context;)V
 +
-     invoke-static {p1}, Lio/mesalabs/unica/PlayIntegrityHooks;->setProps(Landroid/content/Context;)V
- 
      return-object p0
-@@ -4338,6 +4340,8 @@
+ .end method
+ 
+@@ -4336,6 +4338,8 @@
  
      invoke-virtual {p0, p3}, Landroid/app/Application;->attach(Landroid/content/Context;)V
  
 +    invoke-static {p3}, Lio/mesalabs/unica/SamsungPropsHooks;->init(Landroid/content/Context;)V
 +
-     invoke-static {p3}, Lio/mesalabs/unica/PlayIntegrityHooks;->setProps(Landroid/content/Context;)V
- 
      return-object p0
+ .end method
 diff --git a/smali_classes3/android/os/SystemProperties.smali b/smali_classes3/android/os/SystemProperties.smali
 index 3af84b7b..6a9da926 100644
 --- a/smali_classes3/android/os/SystemProperties.smali
