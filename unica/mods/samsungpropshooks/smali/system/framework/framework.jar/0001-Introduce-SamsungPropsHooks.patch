@@ -31,6 +31,7 @@ index 82c86f26..7d00408e 100644
 +
      return-object p0
  .end method
+ 
 diff --git a/smali_classes3/android/os/SystemProperties.smali b/smali_classes3/android/os/SystemProperties.smali
 index 3af84b7b..6a9da926 100644
 --- a/smali_classes3/android/os/SystemProperties.smali
