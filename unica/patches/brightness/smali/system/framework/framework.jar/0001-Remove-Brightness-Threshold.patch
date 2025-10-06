@@ -1,31 +1,13 @@
-From bcaa1186c99ff55b526c4f158acccf04692f0ed1 Mon Sep 17 00:00:00 2001
+From 3b53424f6042e82a6ac2573764c38c12c6ea8908 Mon Sep 17 00:00:00 2001
 From: tisenu100 <tisenu100@github.com>
-Date: Wed Sep 24 10:39:17 2025 +0300
+Date: Mon Oct 6 06:22:30 2025 +0300
 Subject: [PATCH] Remove Brightness Threshold
 
 ---
 diff --git a/smali_classes6/com/samsung/android/hardware/display/RefreshRateConfig.smali b/smali_classes6/com/samsung/android/hardware/display/RefreshRateConfig.smali
-index f5c75017..20a0e3a3 100644
+index f5c75017..dfc0b50d 100644
 --- a/smali_classes6/com/samsung/android/hardware/display/RefreshRateConfig.smali
 +++ b/smali_classes6/com/samsung/android/hardware/display/RefreshRateConfig.smali
-@@ -182,7 +182,7 @@
- 
-     invoke-virtual {p2, p1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
- 
--    const-string v0, "  SUB_SEAMLESS_BRT: "
-+    const-string v0, "  SUB_SEAMLESS_BRT: 89,91"
- 
-     invoke-virtual {p2, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
- 
-@@ -237,7 +237,7 @@
- 
-     invoke-virtual {p2, p1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
- 
--    const-string v0, "  SUB_SEAMLESS_LUX: "
-+    const-string v0, "  SUB_SEAMLESS_LUX: 260,2500"
- 
-     invoke-virtual {p2, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
- 
 @@ -386,7 +386,7 @@
  
      invoke-virtual {p2, p1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
@@ -53,7 +35,7 @@ index f5c75017..20a0e3a3 100644
  
      sget-object v0, Lcom/samsung/android/hardware/display/RefreshRateConfig;->sInstance:Lcom/samsung/android/hardware/display/RefreshRateConfig;
  
-@@ -596,18 +596,14 @@
+@@ -596,11 +596,9 @@
  
      const-string/jumbo v2, "persist.dm.passive.ambient_brightness"
  
@@ -67,13 +49,5 @@ index f5c75017..20a0e3a3 100644
  
      const-string v1, "2"
  
-     const-string v2, "60,120"
- 
--    const-string v3, ""
--
-     invoke-static {v1, v2, v3, v0}, Lcom/samsung/android/hardware/display/RefreshRateConfig;->createRefreshRateConfig(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/samsung/android/hardware/display/RefreshRateConfig$BrightnessThreshold;)Lcom/samsung/android/hardware/display/RefreshRateConfig;
- 
-     move-result-object v0
-
 -- 
 2.48.1
