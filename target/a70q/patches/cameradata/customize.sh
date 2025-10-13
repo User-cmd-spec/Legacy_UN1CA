@@ -1,7 +1,12 @@
 SOURCE_FIRMWARE_PATH="$FW_DIR/$(echo -n "$SOURCE_FIRMWARE" | sed 's./._.g' | rev | cut -d "_" -f2- | rev)"
 
 echo "Deleting base cameradata"
-rm -r $WORK_DIR/system/system/cameradata
+rm -r $WORK_DIR/system/system/cameradata/portrait_data
+rm -r $WORK_DIR/system/system/cameradata/singletake
+rm -r $WORK_DIR/system/system/cameradata/aremoji-feature.xml
+rm -r $WORK_DIR/system/system/cameradata/camera-feature.xml
+rm -r $WORK_DIR/system/system/cameradata/masking_roundrect_shape.png
+rm -r $WORK_DIR/system/system/cameradata/masking_roundrect_shape_ninepatch.png
 
 echo "Adding target cameradata"
 cp -r $SRC_DIR/target/a70q/patches/cameradata/system/cameradata $WORK_DIR/system/system
