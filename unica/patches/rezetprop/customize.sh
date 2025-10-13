@@ -1,9 +1,11 @@
 BL_SPOOF="$(GET_PROP "ro.build.version.incremental")"
 MODEL_SPOOF="$(GET_PROP "ro.product.system.model")"
+SECURITY_PATCH="$(GET_PROP "ro.build.version.security_patch")"
 
 echo "Rezetprop Setup"
 echo "Spoofed BL: "$BL_SPOOF
 echo "Spoofed Model: "$MODEL_SPOOF
+echo "Security Patch: "$SECURITY_PATCH
 if [[ -v SOURCE_PRODUCT_CODE ]]; then
     echo "Spoofed Product Code: "$SOURCE_PRODUCT_CODE
 else
@@ -21,6 +23,7 @@ fi
     echo "    exec u:r:init:s0 root root -- /system/bin/rezetprop -n ro.bootloader "$BL_SPOOF
     echo "    exec u:r:init:s0 root root -- /system/bin/rezetprop -n sys.oem_unlock_allowed 0"
     echo "    exec u:r:init:s0 root root -- /system/bin/rezetprop -n gsm.version.baseband "$BL_SPOOF","$BL_SPOOF
+    echo "    exec u:r:init:s0 root root -- /system/bin/rezetprop -n ro.vendor.build.security_patch "$SECURITY_PATCH
     if [[ -v SOURCE_PRODUCT_CODE ]]; then
         echo "    exec u:r:init:s0 root root -- /system/bin/rezetprop -n ril.product_code "$SOURCE_PRODUCT_CODE
     fi
