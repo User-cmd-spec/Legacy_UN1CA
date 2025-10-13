@@ -1,7 +1,10 @@
 SOURCE_FIRMWARE_PATH="$FW_DIR/$(echo -n "$SOURCE_FIRMWARE" | sed 's./._.g' | rev | cut -d "_" -f2- | rev)"
 
 echo "Deleting base saiv"
-rm -r $WORK_DIR/system/system/saiv
+rm -r $WORK_DIR/system/system/saiv/beauty
+rm -r $WORK_DIR/system/system/saiv/face
+rm -r $WORK_DIR/system/system/saiv/facerestoration
+rm -r $WORK_DIR/system/system/saiv/image_understanding
 rm -r $WORK_DIR/system/system/etc/saiv
 
 echo "Adding target saiv"
