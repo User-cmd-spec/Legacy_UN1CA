@@ -1,4 +1,4 @@
-id=deknox
-name=De-Knox
+id=kg_skip
+name=KnoxGuard Skip
 author=ExtremeXT,tisenu100
-description=Remove unsupported Knox features.
+description=Skips the initialization of KnoxGuard which is completely pointless to run in a custom ROM.
