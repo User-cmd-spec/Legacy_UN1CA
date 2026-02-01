@@ -35,8 +35,6 @@ UN1CA Build engine by:
 
 # Honorable Mentions
 - **[A70Q-Lineage](https://github.com/a70q-lineage/)** Sources for AOSP bringup on the Galaxy A70. Now merged with official LineageOS trees
-- **[ProjectNERV](https://github.com/yagzie/NERV)** Formerly active and allied with LegacyUI project
-- **[ExtremeROM](https://github.com/ExtremeXT/ExtremeROM)** An S24 FE firmware port for the Galaxy S10 & other Exynos series devices
 
 # Kernel Sources
 **[Kernel Source](https://github.com/pascua28/android_kernel_samsung_sm7150)**
