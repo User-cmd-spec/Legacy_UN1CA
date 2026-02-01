@@ -30,9 +30,6 @@ fi
     echo "    exec u:r:init:s0 root root -- /system/bin/rezetprop -n ril.sw_ver "$BL_SPOOF
     echo "    exec u:r:init:s0 root root -- /system/bin/rezetprop -n ro.boot.em.model "$MODEL_SPOOF
     echo ""
-    echo "on property:sys.unica.vbmeta.digest=*"
-    echo '    exec u:r:init:s0 root root -- /system/bin/rezetprop -n ro.boot.vbmeta.digest ${sys.unica.vbmeta.digest}'
-    echo ""
 } >> "$WORK_DIR/system/system/etc/init/hw/init.rc"
 
 sed -i 's/${ro.boot.warranty_bit}/0/g' "$WORK_DIR/system/system/etc/init/init.rilcommon.rc"

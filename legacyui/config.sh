@@ -16,8 +16,8 @@
 #
 
 # UN1CA configuration file
-ROM_VERSION="2.5.6+"
+ROM_VERSION="1.0.1"
 ROM_VERSION+="-$(git rev-parse --short HEAD)"
-ROM_CODENAME="Cafewebs"
+ROM_CODENAME="Crassed"
 
 return 0

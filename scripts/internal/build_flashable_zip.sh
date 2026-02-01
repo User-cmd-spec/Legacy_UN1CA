@@ -54,9 +54,9 @@ PRINT_HEADER()
     echo    'ui_print(" ");'
     echo    'ui_print("****************************************");'
     echo -n 'ui_print("'
-    echo -n "UN1CA-A70 Core Version $ROM_VERSION"
+    echo -n "LegacyUI Core Version $ROM_VERSION"
     echo    '");'
-    echo    'ui_print("UN1CA-A70 by Tisenu100");'
+    echo    'ui_print("LegacyUI by Tisenu100");'
     echo    'ui_print("UN1CA base by salvo_giangri et al.,");'
     echo    'ui_print("****************************************");'
     echo -n 'ui_print("'
@@ -175,7 +175,7 @@ GENERATE_BUILD_INFO()
     true
 }
 
-FILE_NAME="UN1CA_${ROM_VERSION}_$(date +%Y%m%d)_${TARGET_CODENAME}"
+FILE_NAME="LegacyUI_${ROM_VERSION}_$(date +%Y%m%d)_${TARGET_CODENAME}"
 CERT_NAME="aosp_testkey"
 $ROM_IS_OFFICIAL && [ -f "$SRC_DIR/security/unica_ota.pk8" ] && CERT_NAME="unica_ota"
 # ]

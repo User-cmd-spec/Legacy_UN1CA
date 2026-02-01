@@ -2,11 +2,11 @@
   <img loading="lazy" src="readme-res/banner.png"/>
 </h1>
 
-<p align="center">UN1CA-A70 is a fork of UN1CA for the Galaxy A70</p>
+<p align="center">LegacyUI is a fork of UN1CA for the Galaxy A70</p>
 
 # Base:
-UN1CA-A70 aims to bring in a pure OneUI implementation with UN1CA Core patches applied
-Unlike it's parent project and other forks, UN1CA-A70 focuses on a pure reimplementation of the Galaxy A36 firmware on the Galaxy A70.
+LegacyUI aims to bring in a pure OneUI implementation with UN1CA Core patches applied
+Unlike it's parent project and other forks, LegacyUI focuses on a pure reimplementation of the Galaxy A36 firmware on the Galaxy A70.
 It does not focus on bringing full features but a basic framework that allows the device to enjoy a higher API level while keeping many of it's proprietary functions working at most.
 
 # Phones Supported:
@@ -19,10 +19,10 @@ It does not focus on bringing full features but a basic framework that allows th
 * Some revisions use NXP PN553 which is unsupported by OneUI 7 or later. If NFC doesn't launch with an NFC model that means your phone uses that unsupported model and you must disable NFC
 
 # Licensing:
-UN1CA-A70's build engine abides to the GPLv3 license like the original project
+UN1CA's build engine abides to the GPLv3 license like the original project. Same applies for LegacyUI.
 
 # Credits
-UN1CA-A70:
+LegacyUI:
 - **[Tisenu100](https://github.com/tisenu100)** the Master Kanger
 - **[rtd1250](https://github.com/rtd1250)** for the main Galaxy A70 support device trees
 - **[Pascua](https://github.com/pascua28)** for his work upstreaming & improvising the SM6150 kernel via Prime
@@ -30,19 +30,12 @@ UN1CA-A70:
 - **[Peter Knecht](https://github.com/PeterKnecht93)** for assisting on cameradata bringup for legacy devices
 - **Samsung SM6150 Team** for their support on keeping the device & all Samsung SM6150 devices alive
 
-UN1CA Main Team:
+UN1CA Build engine by:
 - **[Salvo](https://github.com/salvogiangri)** project founder and developer of the build system
-- **[ShaDisNX255](https://github.com/ShaDisNX255)**
-- **[DavidArsene](https://github.com/DavidArsene)**
-- **[paulowesll](https://github.com/paulowesll)**
-- **[Simon1511](https://github.com/Simon1511)**
-- **[ananjaser1211](https://github.com/ananjaser1211)**
-- **[iDrinkCoffee](https://github.com/iDrinkCoffee-TG)**
-- **[RisenID](https://github.com/RisenID)**
 
 # Honorable Mentions
 - **[A70Q-Lineage](https://github.com/a70q-lineage/)** Sources for AOSP bringup on the Galaxy A70. Now merged with official LineageOS trees
-- **[ProjectNERV](https://github.com/yagzie/NERV)** Allied project with UN1CA-A70
+- **[ProjectNERV](https://github.com/yagzie/NERV)** Formerly active and allied with LegacyUI project
 - **[ExtremeROM](https://github.com/ExtremeXT/ExtremeROM)** An S24 FE firmware port for the Galaxy S10 & other Exynos series devices
 
 # Kernel Sources
