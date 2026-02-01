@@ -46,6 +46,13 @@ GEN_CONFIG_FILE()
         echo "ROM_VERSION=\"${ROM_VERSION:?}\""
         echo "ROM_CODENAME=\"${ROM_CODENAME:?}\""
         echo "ROM_BUILD_TIMESTAMP=\"$(date '+%s')\""
+        echo "SOURCE_FIRMWARE=\"${SOURCE_FIRMWARE:?}\""
+        if [ "${#SOURCE_EXTRA_FIRMWARES[@]}" -ge 1 ]; then
+            echo "SOURCE_EXTRA_FIRMWARES=\"$( IFS=:; printf '%s' "${SOURCE_EXTRA_FIRMWARES[*]}" )\""
+        else
+            echo "SOURCE_EXTRA_FIRMWARES=\"\""
+        fi
+        echo "SOURCE_PRODUCT_CODE=\"${SOURCE_PRODUCT_CODE:?}\""
         echo "TARGET_NAME=\"${TARGET_NAME:?}\""
         echo "TARGET_CODENAME=\"${TARGET_CODENAME:?}\""
         if [ "${#TARGET_ASSERT_MODEL[@]}" -ge 1 ]; then
@@ -66,6 +73,10 @@ GEN_CONFIG_FILE()
         echo "TARGET_OS_FILE_SYSTEM=\"${TARGET_OS_FILE_SYSTEM:=erofs}\""
         echo "TARGET_INCLUDE_PATCHED_VBMETA=\"${TARGET_INCLUDE_PATCHED_VBMETA:=false}\""
         echo "TARGET_KEEP_ORIGINAL_SIGN=\"${TARGET_KEEP_ORIGINAL_SIGN:=false}\""
+        echo "SOURCE_HAS_SYSTEM_EXT=\"${SOURCE_HAS_SYSTEM_EXT:?}\""
+        echo "TARGET_HAS_SYSTEM_EXT=\"${TARGET_HAS_SYSTEM_EXT:?}\""
+        echo "SOURCE_HAS_PRODUCT=\"${SOURCE_HAS_PRODUCT:?}\""
+        echo "TARGET_HAS_PRODUCT=\"${TARGET_HAS_PRODUCT:?}\""
     } > "$OUT_DIR/config.sh"
 }
 
