@@ -23,6 +23,17 @@ set -Ee
 # [
 trap 'rm -f $OUT_DIR/config.sh' ERR
 
+GET_SOURCE_CONFIG()
+{
+    # Galaxy A36 (parrot)
+    SOURCE_FIRMWARE="SM-A366B/EUX/355838615182742"
+    SOURCE_EXTRA_FIRMWARES=("SM-S911N/KOO/351357511542275")
+    SOURCE_PRODUCT_CODE=SM-A366BLVGEUE
+    SOURCE_HAS_SYSTEM_EXT=true
+    SOURCE_HAS_PRODUCT=true
+    SOURCE_SUPER_GROUP_NAME="qti_dynamic_partitions"
+}
+
 GET_OFFICIAL_STATUS()
 {
     local USES_UNICA_CERT=false
@@ -52,13 +63,6 @@ GEN_CONFIG_FILE()
         echo "ROM_VERSION=\"${ROM_VERSION:?}\""
         echo "ROM_CODENAME=\"${ROM_CODENAME:?}\""
         echo "ROM_BUILD_TIMESTAMP=\"$(date '+%s')\""
-        echo "SOURCE_FIRMWARE=\"${SOURCE_FIRMWARE:?}\""
-        if [ "${#SOURCE_EXTRA_FIRMWARES[@]}" -ge 1 ]; then
-            echo "SOURCE_EXTRA_FIRMWARES=\"$( IFS=:; printf '%s' "${SOURCE_EXTRA_FIRMWARES[*]}" )\""
-        else
-            echo "SOURCE_EXTRA_FIRMWARES=\"\""
-        fi
-        echo "SOURCE_PRODUCT_CODE=\"${SOURCE_PRODUCT_CODE:?}\""
         echo "TARGET_NAME=\"${TARGET_NAME:?}\""
         echo "TARGET_CODENAME=\"${TARGET_CODENAME:?}\""
         if [ "${#TARGET_ASSERT_MODEL[@]}" -ge 1 ]; then
@@ -79,10 +83,6 @@ GEN_CONFIG_FILE()
         echo "TARGET_OS_FILE_SYSTEM=\"${TARGET_OS_FILE_SYSTEM:=erofs}\""
         echo "TARGET_INCLUDE_PATCHED_VBMETA=\"${TARGET_INCLUDE_PATCHED_VBMETA:=false}\""
         echo "TARGET_KEEP_ORIGINAL_SIGN=\"${TARGET_KEEP_ORIGINAL_SIGN:=false}\""
-        echo "SOURCE_HAS_SYSTEM_EXT=\"${SOURCE_HAS_SYSTEM_EXT:?}\""
-        echo "TARGET_HAS_SYSTEM_EXT=\"${TARGET_HAS_SYSTEM_EXT:?}\""
-        echo "SOURCE_HAS_PRODUCT=\"${SOURCE_HAS_PRODUCT:?}\""
-        echo "TARGET_HAS_PRODUCT=\"${TARGET_HAS_PRODUCT:?}\""
     } > "$OUT_DIR/config.sh"
 }
 
@@ -90,6 +90,7 @@ source "$SRC_DIR/target/$1/config.sh"
 source "$SRC_DIR/unica/config.sh"
 # ]
 
+GET_SOURCE_CONFIG
 GEN_CONFIG_FILE
 [ -f "$OUT_DIR/config.sh" ] || exit 1
 
