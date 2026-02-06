@@ -177,7 +177,6 @@ GENERATE_BUILD_INFO()
 
 FILE_NAME="LegacyUI_${ROM_VERSION}_$(date +%Y%m%d)_${TARGET_CODENAME}"
 CERT_NAME="aosp_testkey"
-$ROM_IS_OFFICIAL && [ -f "$SRC_DIR/security/unica_ota.pk8" ] && CERT_NAME="unica_ota"
 # ]
 
 echo "Set up tmp dir"
