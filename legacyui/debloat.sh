@@ -115,6 +115,7 @@ system/priv-app/StickerFaceARAvatar
 SYSTEM_DEBLOAT+="
 system/etc/permissions/privapp-permissions-com.samsung.android.app.esimkeystring.xml
 system/etc/permissions/privapp-permissions-com.samsung.euicc.mep.xml
+system/etc/permissions/privapp-permissions-com.samsung.euicc.xml
 system/etc/sysconfig/preinstalled-packages-com.samsung.android.app.esimkeystring.xml
 system/etc/sysconfig/preinstalled-packages-com.samsung.euicc.xml
 system/priv-app/EsimKeyString
