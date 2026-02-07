@@ -1,0 +1,269 @@
+commit 0208e6580dfbb03550ac6f734fb68a437968e401
+From: tisenu100 <tisenu100@github.com>
+Date:   Sat Feb 7 11:46:23 2026 +0200
+Subject: [PATCH] Remove Knox Services
+
+diff --git a/smali/com/android/server/SystemServer$$ExternalSyntheticLambda8.smali b/smali/com/android/server/SystemServer$$ExternalSyntheticLambda8.smali
+index f20ce0eb..c11b9386 100644
+--- a/smali/com/android/server/SystemServer$$ExternalSyntheticLambda8.smali
++++ b/smali/com/android/server/SystemServer$$ExternalSyntheticLambda8.smali
+@@ -50,60 +50,13 @@
+ 
+     move-result-object v2
+ 
+-    const-string/jumbo v3, "SemService"
+-
+-    invoke-virtual {v2, v3}, Lcom/android/server/utils/TimingsTraceAndSlog;->traceBegin(Ljava/lang/String;)V
+-
+-    :try_start_0
+-    const-class v4, Lcom/android/server/SemService;
+-
+-    invoke-static {v3, v4}, Landroid/os/ServiceManager;->addService(Ljava/lang/String;Ljava/lang/Class;)V
+-    :try_end_0
+-    .catchall {:try_start_0 .. :try_end_0} :catchall_0
+-
+     goto :goto_0
+ 
+-    :catchall_0
+-    move-exception v3
+-
+-    const-string v4, "Failure starting SemService"
+-
+-    invoke-static {v4, v3}, Lcom/android/server/SystemServer;->reportWtf(Ljava/lang/String;Ljava/lang/Throwable;)V
+-
+     :goto_0
+-    invoke-virtual {v2}, Landroid/util/TimingsTraceLog;->traceEnd()V
+-
+-    const-string v3, "Blockchain Service"
+-
+-    invoke-virtual {v2, v3}, Lcom/android/server/utils/TimingsTraceAndSlog;->traceBegin(Ljava/lang/String;)V
+-
+-    :try_start_1
+-    invoke-static {p0, v3}, Landroid/util/Slog;->i(Ljava/lang/String;Ljava/lang/String;)I
+-
+-    const-string/jumbo v3, "blockchain"
+-
+-    new-instance v4, Lcom/android/server/SystemServer$5;
+-
+-    const/4 v5, 0x5
+-
+-    invoke-direct {v4, v5}, Lcom/android/server/SystemServer$5;-><init>(I)V
+-
+-    invoke-static {v3, v4}, Landroid/os/ServiceManager;->addService(Ljava/lang/String;Landroid/os/IServiceCreator;)V
+-    :try_end_1
+-    .catchall {:try_start_1 .. :try_end_1} :catchall_1
+ 
+     goto :goto_1
+ 
+-    :catchall_1
+-    move-exception v3
+-
+-    const-string v4, "Failure starting Blockchain TZ Service"
+-
+-    invoke-static {p0, v4, v3}, Landroid/util/Slog;->e(Ljava/lang/String;Ljava/lang/String;Ljava/lang/Throwable;)I
+-
+     :goto_1
+-    invoke-virtual {v2}, Landroid/util/TimingsTraceLog;->traceEnd()V
+-
+     const-string/jumbo v3, "SemAuthnrService"
+ 
+     invoke-virtual {v2, v3}, Lcom/android/server/utils/TimingsTraceAndSlog;->traceBegin(Ljava/lang/String;)V
+@@ -152,36 +105,9 @@
+     invoke-static {p0, v4, v3}, Landroid/util/Slog;->e(Ljava/lang/String;Ljava/lang/String;Ljava/lang/Throwable;)I
+ 
+     :goto_3
+-    invoke-virtual {v2}, Landroid/util/TimingsTraceLog;->traceEnd()V
+-
+-    invoke-static {v1, v2, v0}, Lcom/android/server/SystemServer;->startRCPService(Landroid/content/Context;Lcom/android/server/utils/TimingsTraceAndSlog;Z)V
+-
+-    const-string/jumbo v1, "MPOS Service"
+-
+-    invoke-virtual {v2, v1}, Lcom/android/server/utils/TimingsTraceAndSlog;->traceBegin(Ljava/lang/String;)V
+-
+-    :try_start_4
+-    const-string/jumbo v1, "mpos_service"
+-
+-    new-instance v3, Lcom/android/server/SystemServer$5;
+-
+-    invoke-direct {v3, v0}, Lcom/android/server/SystemServer$5;-><init>(I)V
+-
+-    invoke-static {v1, v3}, Landroid/os/ServiceManager;->addService(Ljava/lang/String;Landroid/os/IServiceCreator;)V
+-    :try_end_4
+-    .catch Ljava/lang/Exception; {:try_start_4 .. :try_end_4} :catch_0
+ 
+     goto :goto_4
+ 
+-    :catch_0
+-    move-exception v0
+-
+-    const-string/jumbo v1, "MPOS - failed to add MPOS Manager Service "
+-
+-    invoke-static {p0, v1}, Landroid/util/Slog;->e(Ljava/lang/String;Ljava/lang/String;)I
+-
+-    invoke-virtual {v0}, Ljava/lang/Exception;->printStackTrace()V
+-
+     :goto_4
+     invoke-virtual {v2}, Landroid/util/TimingsTraceLog;->traceEnd()V
+ 
+diff --git a/smali/com/android/server/SystemServer$5.smali b/smali/com/android/server/SystemServer$5.smali
+index 771c43ac..c650d8c1 100644
+--- a/smali/com/android/server/SystemServer$5.smali
++++ b/smali/com/android/server/SystemServer$5.smali
+@@ -43,32 +43,6 @@
+     return-object p0
+ 
+     :pswitch_0
+-    new-instance p0, Lcom/android/server/blockchain/BlockchainTZService;
+-
+-    invoke-direct {p0}, Landroid/blockchain/IBlockchainManager$Stub;-><init>()V
+-
+-    new-instance v0, Ljava/util/HashMap;
+-
+-    invoke-direct {v0}, Ljava/util/HashMap;-><init>()V
+-
+-    iput-object v0, p0, Lcom/android/server/blockchain/BlockchainTZService;->mRegisteredFWKClientMap:Ljava/util/Map;
+-
+-    sget-boolean v0, Lcom/android/server/blockchain/BlockchainTZService;->DEBUG:Z
+-
+-    if-eqz v0, :cond_0
+-
+-    const-string v0, "BlockchainTZService"
+-
+-    const-string v1, "BlockchainTZService() called"
+-
+-    invoke-static {v0, v1}, Landroid/util/Log;->d(Ljava/lang/String;Ljava/lang/String;)I
+-
+-    :cond_0
+-    sput-object p1, Lcom/android/server/blockchain/BlockchainTZService;->mContext:Landroid/content/Context;
+-
+-    return-object p0
+-
+-    :pswitch_1
+     new-instance p0, Lcom/android/server/knox/dar/DarManagerService;
+ 
+     new-instance v0, Lcom/android/server/knox/dar/DarManagerService$Injector;
+@@ -79,14 +53,14 @@
+ 
+     return-object p0
+ 
+-    :pswitch_2
++    :pswitch_1
+     new-instance p0, Lcom/android/server/enterprise/container/KnoxMUMRCPPolicyService;
+ 
+     invoke-direct {p0, p1}, Lcom/android/server/enterprise/container/KnoxMUMRCPPolicyService;-><init>(Landroid/content/Context;)V
+ 
+     return-object p0
+ 
+-    :pswitch_3
++    :pswitch_2
+     new-instance p0, Lcom/android/server/emailksproxy/EmailKeystoreService;
+ 
+     invoke-direct {p0}, Lcom/samsung/android/knox/util/ISemKeyStoreService$Stub;-><init>()V
+@@ -95,14 +69,7 @@
+ 
+     return-object p0
+ 
+-    :pswitch_4
+-    new-instance p0, Lcom/android/server/enterprise/mpos/MPOSService;
+-
+-    invoke-direct {p0, p1}, Lcom/android/server/enterprise/mpos/MPOSService;-><init>(Landroid/content/Context;)V
+-
+-    return-object p0
+-
+-    :pswitch_5
++    :pswitch_3
+     new-instance p0, Lcom/android/server/IcccManagerService;
+ 
+     invoke-direct {p0}, Lcom/samsung/android/iccc/IIntegrityControlCheckCenter$Stub;-><init>()V
+@@ -137,8 +104,6 @@
+ 
+     :pswitch_data_0
+     .packed-switch 0x0
+-        :pswitch_5
+-        :pswitch_4
+         :pswitch_3
+         :pswitch_2
+         :pswitch_1
+diff --git a/smali/com/android/server/enterprise/EnterpriseDeviceManagerServiceImpl.smali b/smali/com/android/server/enterprise/EnterpriseDeviceManagerServiceImpl.smali
+index c3d2ab01..1f9b8272 100644
+--- a/smali/com/android/server/enterprise/EnterpriseDeviceManagerServiceImpl.smali
++++ b/smali/com/android/server/enterprise/EnterpriseDeviceManagerServiceImpl.smali
+@@ -1359,22 +1359,19 @@
+ 
+     move-result-object v0
+ 
+-    check-cast v0, Lcom/android/server/enterprise/hdm/HdmService;
++    if-nez v0, :cond_1a
+ 
+-    if-eqz v0, :cond_1a
+-
+-    const-string v1, "EnterpriseDeviceManagerService"
++    goto :goto_12
+ 
+-    const-string/jumbo v3, "call systemReady for hdm "
++    :cond_1a
++    new-instance v0, Ljava/lang/ClassCastException;
+ 
+-    invoke-static {v1, v3}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;)I
++    invoke-direct {v0}, Ljava/lang/ClassCastException;-><init>()V
+ 
+-    invoke-virtual {v0, v2}, Lcom/android/server/enterprise/hdm/HdmService;->systemReady(I)V
++    throw v0
+     :try_end_11
+     .catchall {:try_start_11 .. :try_end_11} :catchall_3
+ 
+-    goto :goto_12
+-
+     :catchall_3
+     const-string v0, "EnterpriseDeviceManagerService"
+ 
+@@ -1382,7 +1379,6 @@
+ 
+     invoke-static {v0, v1}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;)I
+ 
+-    :cond_1a
+     :goto_12
+     return-void
+ .end method
+@@ -2138,33 +2134,23 @@
+ 
+     new-instance p1, Lcom/android/server/enterprise/security/PasswordPolicy;
+ 
+-    iget-object v1, v0, Lcom/android/server/enterprise/EnterpriseDeviceManagerServiceImpl$Injector;->mContext:Landroid/content/Context;
++    iget-object v0, v0, Lcom/android/server/enterprise/EnterpriseDeviceManagerServiceImpl$Injector;->mContext:Landroid/content/Context;
+ 
+-    invoke-direct {p1, v1}, Lcom/android/server/enterprise/security/PasswordPolicy;-><init>(Landroid/content/Context;)V
++    invoke-direct {p1, v0}, Lcom/android/server/enterprise/security/PasswordPolicy;-><init>(Landroid/content/Context;)V
+ 
+-    const-string/jumbo v1, "password_policy"
++    const-string/jumbo v0, "password_policy"
+ 
+-    invoke-static {p1, v1}, Lcom/android/server/enterprise/EnterpriseDeviceManagerServiceImpl$Injector;->addLazySystemService(Lcom/android/server/enterprise/EnterpriseServiceCallback;Ljava/lang/String;)V
++    invoke-static {p1, v0}, Lcom/android/server/enterprise/EnterpriseDeviceManagerServiceImpl$Injector;->addLazySystemService(Lcom/android/server/enterprise/EnterpriseServiceCallback;Ljava/lang/String;)V
+ 
+     new-instance p1, Lcom/android/server/enterprise/EDMProxyService;
+ 
+-    iget-object v1, p0, Lcom/android/server/enterprise/EnterpriseDeviceManagerServiceImpl;->mContext:Landroid/content/Context;
+-
+-    invoke-direct {p1, v1}, Lcom/android/server/enterprise/EDMProxyService;-><init>(Landroid/content/Context;)V
+-
+-    const-string/jumbo v1, "edm_proxy"
+-
+-    invoke-static {v1, p1}, Landroid/os/ServiceManager;->addService(Ljava/lang/String;Landroid/os/IBinder;)V
+-
+-    new-instance p1, Lcom/android/server/enterprise/hdm/HdmService;
++    iget-object v0, p0, Lcom/android/server/enterprise/EnterpriseDeviceManagerServiceImpl;->mContext:Landroid/content/Context;
+ 
+-    iget-object v0, v0, Lcom/android/server/enterprise/EnterpriseDeviceManagerServiceImpl$Injector;->mContext:Landroid/content/Context;
++    invoke-direct {p1, v0}, Lcom/android/server/enterprise/EDMProxyService;-><init>(Landroid/content/Context;)V
+ 
+-    invoke-direct {p1, v0}, Lcom/android/server/enterprise/hdm/HdmService;-><init>(Landroid/content/Context;)V
++    const-string/jumbo v0, "edm_proxy"
+ 
+-    const-string/jumbo v0, "hdm_service"
+-
+-    invoke-static {p1, v0}, Lcom/android/server/enterprise/EnterpriseDeviceManagerServiceImpl$Injector;->addLazySystemService(Lcom/android/server/enterprise/EnterpriseServiceCallback;Ljava/lang/String;)V
++    invoke-static {v0, p1}, Landroid/os/ServiceManager;->addService(Ljava/lang/String;Landroid/os/IBinder;)V
+ 
+     iget-object p1, p0, Lcom/android/server/enterprise/EnterpriseDeviceManagerServiceImpl;->mContext:Landroid/content/Context;
+ 

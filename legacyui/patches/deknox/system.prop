@@ -1,0 +1,15 @@
+# Remove ICCC prop
+ro.config.iccc_version=
+
+# Disable HDCP in WFD
+wlan.wfd.hdcp=disable
+
+# Disable MDF
+security.mdf.result=
+security.mdf=
+ro.security.mdf.ver=
+ro.security.mdf.release=
+ro.security.mdf.ux=
+
+# Disable Knox Matrix
+ro.security.knoxmatrix=
