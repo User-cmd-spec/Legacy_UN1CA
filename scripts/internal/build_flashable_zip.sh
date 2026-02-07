@@ -54,7 +54,7 @@ PRINT_HEADER()
     echo    'ui_print(" ");'
     echo    'ui_print("****************************************");'
     echo -n 'ui_print("'
-    echo -n "LegacyUI Core Version $ROM_VERSION"
+    echo -n "LegacyUI Version $ROM_VERSION"
     echo    '");'
     echo    'ui_print("LegacyUI by Tisenu100");'
     echo    'ui_print("UN1CA base by salvo_giangri et al.,");'
