@@ -13,7 +13,6 @@ echo "Applying MAINLINE_API_LEVEL patches"
 FTP="
 system/framework/esecomm.jar/smali/com/sec/esecomm/EsecommAdapter.smali
 system/framework/services.jar/smali/com/android/server/SystemServer.smali
-system/framework/services.jar/smali/com/android/server/enterprise/hdm/HdmVendorController.smali
 system/framework/services.jar/smali_classes2/com/android/server/power/PowerManagerUtil.smali
 system/framework/services.jar/smali_classes2/com/android/server/sepunion/EngmodeService\$EngmodeTimeThread.smali
 "
