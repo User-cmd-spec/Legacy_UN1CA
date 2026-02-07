@@ -122,6 +122,16 @@ system/priv-app/EsimKeyString
 system/priv-app/EuiccService
 "
 
+# KSMBD (Storage Share)
+SYSTEM_DEBLOAT+="
+system/bin/ksmbd.adduser
+system/bin/ksmbd.tools
+system/bin/ksmbd.control
+system/bin/ksmbd.mountd
+system/bin/ksmbd.addshare
+system/priv-app/StorageShare
+"
+
 # Knox Matrix
 SYSTEM_DEBLOAT+="
 system/bin/fabric_crypto
