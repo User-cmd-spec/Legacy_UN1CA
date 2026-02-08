@@ -6,6 +6,8 @@ DOWNLOAD_FILE "$(GET_GALAXY_STORE_DOWNLOAD_URL "com.samsung.android.calendar")" 
     "$WORK_DIR/system/system/preload/Calendar/Calendar.apk"
 DOWNLOAD_FILE "$(GET_GALAXY_STORE_DOWNLOAD_URL "com.sec.android.app.clockpackage")" \
     "$WORK_DIR/system/system/preload/Clock/Clock.apk"
+DOWNLOAD_FILE "$(GET_GALAXY_STORE_DOWNLOAD_URL "com.sec.android.app.shealth")" \
+    "$WORK_DIR/system/system/preload/SHealth/SHealth.apk"
 
 sed -i "/system\/preload/d" "$WORK_DIR/configs/fs_config-system" \
     && sed -i "/system\/preload/d" "$WORK_DIR/configs/file_context-system"
