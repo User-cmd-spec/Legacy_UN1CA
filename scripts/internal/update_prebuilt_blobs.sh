@@ -64,10 +64,10 @@ fi
 
 case "$1" in
     "prebuilts/samsung/r9qxxx")
-        FIRMWARE="SM-G990B/SER/354857820750128"
+        FIRMWARE="SM-G990B/SER/353718688287150"
         ;;
     "prebuilts/samsung/a17xxx")
-        FIRMWARE="SM-A176B/EUX/355851152109564"
+        FIRMWARE="SM-A176B/EUX/350037990390427"
         ;;
     "prebuilts/samsung/a70q")
         echo "Quasi folder. Can't do that!"
