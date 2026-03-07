@@ -1606,42 +1606,10 @@
         </interface>
     </hal>
     <hal format="hidl" optional="true">
-        <name>vendor.samsung.hardware.tlc.blockchain</name>
-        <version>1.0</version>
-        <interface>
-            <name>ISehBlockchain</name>
-            <instance>default</instance>
-        </interface>
-    </hal>
-    <hal format="hidl" optional="true">
-        <name>vendor.samsung.hardware.tlc.hdm</name>
-        <version>1.1</version>
-        <interface>
-            <name>ISehHdm</name>
-            <instance>default</instance>
-        </interface>
-    </hal>
-    <hal format="hidl" optional="true">
         <name>vendor.samsung.hardware.tlc.iccc</name>
         <version>1.0</version>
         <interface>
             <name>ISehIccc</name>
-            <instance>default</instance>
-        </interface>
-    </hal>
-    <hal format="hidl" optional="true">
-        <name>vendor.samsung.hardware.tlc.kg</name>
-        <version>1.1</version>
-        <interface>
-            <name>ISehKg</name>
-            <instance>default</instance>
-        </interface>
-    </hal>
-    <hal format="hidl" optional="true">
-        <name>vendor.samsung.hardware.tlc.mpos_tui</name>
-        <version>1.0</version>
-        <interface>
-            <name>ISehMposTui</name>
             <instance>default</instance>
         </interface>
     </hal>
