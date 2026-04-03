@@ -26,17 +26,14 @@ COPY_SOURCE_FIRMWARE()
     MODEL=$(echo -n "$SOURCE_FIRMWARE" | cut -d "/" -f 1)
     REGION=$(echo -n "$SOURCE_FIRMWARE" | cut -d "/" -f 2)
 
-    local COMMON_FOLDERS="system"
-    for folder in $COMMON_FOLDERS
-    do
-        if [ ! -d "$WORK_DIR/$folder" ]; then
-            mkdir -p "$WORK_DIR/$folder"
-            cp -a --preserve=all "$FW_DIR/${MODEL}_${REGION}/$folder" "$WORK_DIR"
-            cp --preserve=all "$FW_DIR/${MODEL}_${REGION}/file_context-$folder" "$WORK_DIR/configs"
-            cp --preserve=all "$FW_DIR/${MODEL}_${REGION}/fs_config-$folder" "$WORK_DIR/configs"
-        fi
-    done
+# Setup the system partition
+    if [ ! -d "$WORK_DIR/system" ]; then
+        mkdir -p "$WORK_DIR/system"
+        cp -a --preserve=all "$FW_DIR/${MODEL}_${REGION}/system" "$WORK_DIR"
+        cp --preserve=all "$FW_DIR/${MODEL}_${REGION}/file_context-system" "$WORK_DIR/configs"
+        cp --preserve=all "$FW_DIR/${MODEL}_${REGION}/fs_config-system" "$WORK_DIR/configs"
 
+# Differentiate system_ext & product status
     if $SOURCE_HAS_SYSTEM_EXT; then
         if ! $TARGET_HAS_SYSTEM_EXT; then
             if [ ! -d "$WORK_DIR/system/system/system_ext" ]; then
