@@ -79,7 +79,7 @@ IFS=':' read -a TARGET_FIRMWARE <<< "$TARGET_FIRMWARE"
 if [ "${#TARGET_FIRMWARE[@]}" -ge 1 ]; then
     for i in "${TARGET_FIRMWARE[@]}"
     do
-        FIRMWARES+=( "$i" )
+        FIRMWARES=( "$SOURCE_FIRMWARE" "$TARGET_FIRMWARE" )
     done
 fi
 IFS=':' read -a SOURCE_EXTRA_FIRMWARES <<< "$SOURCE_EXTRA_FIRMWARES"
