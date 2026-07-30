@@ -48,7 +48,7 @@ DOWNLOAD_FIRMWARE()
             AP_URL="$A366_AP"
             BL_URL="$A366_BL"
             ;;
-        *A705*|*a705*)
+        *A705*|*a705*|s911*|S911*)
             AP_URL="$A705FN_AP"
             BL_URL="$A705FN_BL"
             ;;
