@@ -25,8 +25,8 @@ CONFIG_HASH="$(sed '/ROM_BUILD_TIMESTAMP/d' "$OUT_DIR/config.sh" | sha1sum | cut
 WORK_DIR_HASH="$(echo -n "$COMMIT_HASH$CONFIG_HASH" | sha1sum | cut -d " " -f 1)"
 # ]
 
-FORCE=false
-BUILD_ROM=false
+FORCE=true
+BUILD_ROM=true
 BUILD_ZIP=true
 
 while [ "$#" != 0 ]; do
