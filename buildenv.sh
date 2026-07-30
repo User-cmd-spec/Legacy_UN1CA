@@ -102,6 +102,8 @@ export APKTOOL_DIR="$OUT_DIR/apktool"
 export WORK_DIR="$OUT_DIR/work_dir"
 export TOOLS_DIR="$OUT_DIR/tools/bin"
 export PATH="$TOOLS_DIR:$PATH"
+export SOURCE_FIRMWARE="SM-A366B/EUX"
+export TARGET_FIRMWARE="SM-A705FN/EUX"
 
 mkdir -p "$OUT_DIR"
 run_cmd build_dependencies || return 1
