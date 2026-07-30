@@ -48,7 +48,7 @@ DOWNLOAD_FIRMWARE()
             AP_URL="$A366_AP"
             BL_URL="$A366_BL"
             ;;
-        *A705*|*a705*|s911*|S911*)
+        *A705*|*a705*|*s911*|*S911*)
             AP_URL="$A705FN_AP"
             BL_URL="$A705FN_BL"
             ;;
@@ -74,28 +74,24 @@ DOWNLOAD_FIRMWARE()
     cd "$PDR"
 }
 
-FIRMWARES=( "$SOURCE_FIRMWARE" )
-IFS=':' read -a TARGET_FIRMWARE <<< "$TARGET_FIRMWARE"
-if [ "${#TARGET_FIRMWARE[@]}" -ge 1 ]; then
-    for i in "${TARGET_FIRMWARE[@]}"
-    do
-        FIRMWARES=( "$SOURCE_FIRMWARE" "$TARGET_FIRMWARE" )
-    done
-fi
-IFS=':' read -a SOURCE_EXTRA_FIRMWARES <<< "$SOURCE_EXTRA_FIRMWARES"
-if [ "${#SOURCE_EXTRA_FIRMWARES[@]}" -ge 1 ]; then
-    for i in "${SOURCE_EXTRA_FIRMWARES[@]}"
-    do
-        FIRMWARES+=( "$i" )
-    done
-fi
-IFS=':' read -a TARGET_EXTRA_FIRMWARES <<< "$TARGET_EXTRA_FIRMWARES"
-if [ "${#TARGET_EXTRA_FIRMWARES[@]}" -ge 1 ]; then
-    for i in "${TARGET_EXTRA_FIRMWARES[@]}"
-    do
-        FIRMWARES+=( "$i" )
-    done
-fi
+FIRMWARES=()
+
+[ -n "$SOURCE_FIRMWARE" ] && FIRMWARES+=("$SOURCE_FIRMWARE")
+
+IFS=':' read -ra TARGETS <<< "$TARGET_FIRMWARE"
+for t in "${TARGETS[@]}"; do
+    [ -n "$t" ] && FIRMWARES+=("$t")
+done
+
+IFS=':' read -ra SRC_EXTRAS <<< "$SOURCE_EXTRA_FIRMWARES"
+for s in "${SRC_EXTRAS[@]}"; do
+    [ -n "$s" ] && FIRMWARES+=("$s")
+done
+
+IFS=':' read -ra TGT_EXTRAS <<< "$TARGET_EXTRA_FIRMWARES"
+for te in "${TGT_EXTRAS[@]}"; do
+    [ -n "$te" ] && FIRMWARES+=("$te")
+done
 
 FORCE=false
 
