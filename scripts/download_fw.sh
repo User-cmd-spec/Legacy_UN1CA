@@ -20,7 +20,12 @@
 
 set -e
 
-# [
+A366_AP="https://ts.buzzheavier.com/d/dmxgprk0tnzv?v=xC1mqJ02ke065_p_FmYi6ItDetZR5OWp06ATnLSzvunSZh0gDjnJ1YDyWOXJ2qJhopZsL5XtNuN2ptFHsEnBvWi-Zu6i9QWRLK73kK296nj9ZxUdqNP8oLyrIwVp42MmX-OmjOrdZqFR8_BA3EffZBilSsBJ95-Lt8OLP_DeFJaugjWxVhFhz7mlcpKzYLYGWYNSCxrBTMcgZx2Qv8XNHiMU__skVYLqYiEON_rk-bb4ptdWvaaJFBtCA8SLdAxyE2WKm1R34sZB2jBfnI6TX_qDIKMVdlUTLXzAX1k9aL583yuu4qUDfZ4OlZ2S0dWW7TWUXwQfmo4dyXySBT3iA0lTOQEvV7yb8zpH"
+A366_BL="https://ts.buzzheavier.com/d/w3a582ba9obg?v=jSqnPNQF48T5uFiIgN2Gj2qEFOB7XoYt_9u_2PuG4zO4249y38OLSoq4wAyexgbM_MB9c5OyawCNu5zIBWzWUPn9rS1gsC8Ztsv4kC3mCA2uWucIdW3V-N0OQOuoUiBksTZiyv4Lmfy17Z_yhLyoSZ9VpcOkMQ4H-rykIfZRoiE4MPF8NbJZfQ5HuZdVeIWQWqFjGuxh0LyB1fwRxK_-FnEwNsKDfTOwjKq6MDGoYK0IiD5USuZHCbsx-ih9bBjucCeWNnQnS5RRthJ8rLb4dJFm6kVSzqkg9imEK32vVOQtIAgQ3Tuuil3aZP6lSAwR_s9PBLvYtw"
+
+A705FN_AP="https://ts.buzzheavier.com/d/iivnn2ka3pnp?v=mZPvNQdwOM15bsc2Z5qKEo6vSvzc2y2Sy4S_k0ugGgTvidd5azM_Rm4j157r6EffMtBY5FyOc32BA1oko2ZydoNLgdpfzfuREm2O24KmCARLwMLvwuPYycAb25JFjn3Oe4bzL9vgEUZSLHbhunwbgrLuIFNUQmz0v4w5x1WkT53q7HU71BPl4g_jaXCSak5LobEZhEy_4F2DBlCu3N2F94Hv3Txhl9MfE6AalGvXubqHHPMke_TnoBS6zrj4humsghsDHt0CPJ3vs52CtFVix4vyfNYdtuvyxjk5TsQ2dE6T3_dDVcPLbAsSrcXNvkLY_9q5e6Mkg1bnejsSUnzvVoy1Mw"
+A705FN_BL="https://ts.buzzheavier.com/d/ptawjbdqas7q?v=IBoThUgqrNuQWgqMF-DpVDVwiEAQBrCpFs2V1mFGekL9jNvErKV2xQmr51tPqXPywWdUlAP8V-s8NkC1sucOgHzqbK4Z9jXFcyTSGI3ulV8qFbVn4DG76Zasgvb0D4_kfsJx_4G_JTxWnC8kZOy55dBjCXUTD6Y8Jh8ZMzrVKh-OnACMUXleLEPyaRjG5XGPbnFCQvTnVytLUp291Iq9iH04EnNhjbgD8UHadIcb6hww969iWQ_Zq8eTNraScgjuHh63beEjvfNC2jgrhyXyGYePsKOiQ5xgopwX5amXO70IOPM9SjoRQPPAXuZ3Ems"
+
 GET_LATEST_FIRMWARE()
 {
     curl -s --retry 5 --retry-delay 5 "https://fota-cloud-dn.ospserver.net/firmware/$REGION/$MODEL/version.xml" \
@@ -32,14 +37,37 @@ DOWNLOAD_FIRMWARE()
     local PDR
     PDR="$(pwd)"
 
-    cd "$ODIN_DIR"
-    { samfirm -m "$MODEL" -r "$REGION" -i "$IMEI" > /dev/null; } 2>&1 \
-        && touch "$ODIN_DIR/${MODEL}_${REGION}/.downloaded" \
-        || exit 1
-    [ -f "$ODIN_DIR/${MODEL}_${REGION}/.downloaded" ] && {
-        echo -n "$(find "$ODIN_DIR/${MODEL}_${REGION}" -name "AP*" -exec basename {} \; | cut -d "_" -f 2)/"
-        echo -n "$(find "$ODIN_DIR/${MODEL}_${REGION}" -name "CSC*" -exec basename {} \; | cut -d "_" -f 3)/"
-        echo -n "$(find "$ODIN_DIR/${MODEL}_${REGION}" -name "CP*" -exec basename {} \; | cut -d "_" -f 2)"
+    mkdir -p "$ODIN_DIR/${MODEL}_${REGION}"
+    cd "$ODIN_DIR/${MODEL}_${REGION}"
+
+    local AP_URL=""
+    local BL_URL=""
+
+    case "$MODEL" in
+        *A366*|*a366*)
+            AP_URL="$A366_AP"
+            BL_URL="$A366_BL"
+            ;;
+        *A705*|*a705*)
+            AP_URL="$A705FN_AP"
+            BL_URL="$A705FN_BL"
+            ;;
+        *)
+            echo "Error: No matching Buzzheavier URLs configured for model $MODEL"
+            exit 1
+            ;;
+    esac
+
+    echo "- Downloading AP .tar.md5 for $MODEL..."
+    curl -L --retry 5 --retry-delay 5 -o "AP_${MODEL}_firmware.tar.md5" "$AP_URL"
+
+    echo "- Downloading BL .tar.md5 for $MODEL..."
+    curl -L --retry 5 --retry-delay 5 -o "BL_${MODEL}_firmware.tar.md5" "$BL_URL"
+
+    touch "$ODIN_DIR/${MODEL}_${REGION}/.downloaded"
+    {
+        echo -n "AP_${MODEL}/"
+        echo -n "BL_${MODEL}"
     } >> "$ODIN_DIR/${MODEL}_${REGION}/.downloaded"
 
     echo ""
@@ -68,7 +96,6 @@ if [ "${#TARGET_EXTRA_FIRMWARES[@]}" -ge 1 ]; then
         FIRMWARES+=( "$i" )
     done
 fi
-# ]
 
 FORCE=false
 
@@ -93,20 +120,11 @@ for i in "${FIRMWARES[@]}"
 do
     MODEL=$(echo -n "$i" | cut -d "/" -f 1)
     REGION=$(echo -n "$i" | cut -d "/" -f 2)
-    IMEI=$(echo -n "$i" | cut -d "/" -f 3)
 
     if [ -f "$ODIN_DIR/${MODEL}_${REGION}/.downloaded" ]; then
-        [ -z "$(GET_LATEST_FIRMWARE)" ] && continue
-        if [[ "$(GET_LATEST_FIRMWARE)" != "$(cat "$ODIN_DIR/${MODEL}_${REGION}/.downloaded")" ]]; then
-            if $FORCE; then
-                echo "- Updating $MODEL firmware with $REGION CSC..."
-                rm -rf "$ODIN_DIR/${MODEL}_${REGION}" && DOWNLOAD_FIRMWARE
-            else
-                echo    "- $MODEL firmware with $REGION CSC already downloaded"
-                echo    "  A newer version of this device's firmware is available."
-                echo -e "  To download, clean your Odin firmwares directory or run this cmd with \"--force\"\n"
-                continue
-            fi
+        if $FORCE; then
+            echo "- Updating $MODEL firmware with $REGION CSC..."
+            rm -rf "$ODIN_DIR/${MODEL}_${REGION}" && DOWNLOAD_FIRMWARE
         else
             echo -e "- $MODEL firmware with $REGION CSC already downloaded\n"
             continue
