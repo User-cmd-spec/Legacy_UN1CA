@@ -1,5 +1,6 @@
 {
 mkdir $WORK_DIR/system/system/system_ext/apex
+SOURCE_EXTRA_FIRMWARES="SM-A366B/EUX/351384481564824"
 } || {
 echo "apex folder already exists"
 }
