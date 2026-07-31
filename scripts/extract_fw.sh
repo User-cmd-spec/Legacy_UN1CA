@@ -145,6 +145,7 @@ EXTRACT_OS_PARTITIONS()
 	
 	if tar tf "$AP_TAR" "super.img.lz4" >/dev/null 2>&1; then
     # existing super extraction
+	true
 else
     echo "No super.img, extracting system.img"
     tar xf "$AP_TAR" "system.img.lz4"
@@ -175,7 +176,8 @@ fi
 		COMMON_FOLDERS="odm_a product_a system_a vendor_a"
 		PARTITION_MASK="_a.img"
 	    fi
-        fi
+    fi
+fi
 
         [ -d "tmp_out" ] && mountpoint -q "tmp_out" && sudo umount "tmp_out"
         mkdir -p "tmp_out"
