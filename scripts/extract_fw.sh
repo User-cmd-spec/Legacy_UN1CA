@@ -138,19 +138,22 @@ EXTRACT_OS_PARTITIONS()
 {
     local PDR
     PDR="$(pwd)"
-
     local SHOULD_EXTRACT=false
     local SHOULD_EXTRACT_SUPER=false
     local PARTITION_MASK=".img"
+    local HAS_SUPER=false
 
     cd "$FW_DIR/${MODEL}_${REGION}"
 
     if tar tf "$AP_TAR" "super.img.lz4" >/dev/null 2>&1; then
-        true
+        HAS_SUPER=true
     else
-        echo "No super.img, extracting system.img"
-        tar xf "$AP_TAR" "system.img.ext4.lz4"
-        lz4 -d -q --rm system.img.ext4.lz4 system.img
+        for part in system vendor product odm; do
+            if tar tf "$AP_TAR" "${part}.img.ext4.lz4" >/dev/null 2>&1; then
+                tar xf "$AP_TAR" "${part}.img.ext4.lz4"
+                lz4 -d -q --rm "${part}.img.ext4.lz4" "${part}.img"
+            fi
+        done
     fi
 
     echo "- Extracting OS partitions..."
@@ -163,18 +166,19 @@ EXTRACT_OS_PARTITIONS()
     done
 
     if $SHOULD_EXTRACT; then
-        if [ ! -f "lpdump" ] || $SHOULD_EXTRACT_SUPER; then
-            echo "Extracting super.img"
-            tar xf "$AP_TAR" "super.img.lz4"
-            lz4 -d -q --rm "super.img.lz4" "super.img.sparse"
-            simg2img "super.img.sparse" "super.img" && rm "super.img.sparse"
-            { lpunpack "super.img" > /dev/null; } 2>&1
-            lpdump "super.img" > "lpdump" && rm "super.img"
+        if [ "$HAS_SUPER" = true ]; then
+            if [ ! -f "lpdump" ] || $SHOULD_EXTRACT_SUPER; then
+                echo "Extracting super.img"
+                tar xf "$AP_TAR" "super.img.lz4"
+                lz4 -d -q --rm "super.img.lz4" "super.img.sparse"
+                simg2img "super.img.sparse" "super.img" && rm "super.img.sparse"
+                { lpunpack "super.img" > /dev/null; } 2>&1
+                lpdump "super.img" > "lpdump" && rm "super.img"
 
-            if [ -f "system_a.img" ]; then
-                echo "Dynamic Partitions Detected!"
-                COMMON_FOLDERS="odm_a product_a system_a vendor_a"
-                PARTITION_MASK="_a.img"
+                if [ -f "system_a.img" ]; then
+                    COMMON_FOLDERS="odm_a product_a system_a vendor_a"
+                    PARTITION_MASK="_a.img"
+                fi
             fi
         fi
 
@@ -187,7 +191,6 @@ EXTRACT_OS_PARTITIONS()
 
             case "$(GET_IMG_FS_TYPE "$img")" in
                 "erofs")
-                    echo "Extracting $img"
                     PREFIX=""
                     [ -d "$PARTITION" ] && rm -rf "$PARTITION"
                     mkdir -p "$PARTITION"
@@ -195,7 +198,6 @@ EXTRACT_OS_PARTITIONS()
                     cp -a --preserve=all tmp_out/* "$PARTITION"
                     ;;
                 "f2fs" | "ext4")
-                    echo "Extracting $img"
                     PREFIX="sudo"
                     [ -d "$PARTITION" ] && rm -rf "$PARTITION"
                     mkdir -p "$PARTITION"
@@ -211,7 +213,6 @@ EXTRACT_OS_PARTITIONS()
                     ;;
             esac
 
-            echo "Generating fs_config/file_context for $img"
             [ -f "file_context-$PARTITION" ] && rm "file_context-$PARTITION"
             [ -f "fs_config-$PARTITION" ] && rm "fs_config-$PARTITION"
             while read -r i; do
@@ -231,6 +232,7 @@ EXTRACT_OS_PARTITIONS()
                 esac
                 $PREFIX stat -c "%n %u %g %a capabilities=$CAPABILITIES" "$i" >> "fs_config-$PARTITION"
             done <<< "$($PREFIX find "tmp_out")"
+            
             if [ "$PARTITION" = "system" ]; then
                 sed -i "s/tmp_out /\/ /g" "file_context-$PARTITION" \
                     && sed -i "s/tmp_out\//\//g" "file_context-$PARTITION"
@@ -241,6 +243,7 @@ EXTRACT_OS_PARTITIONS()
                 sed -i "s/tmp_out / /g" "fs_config-$PARTITION" \
                     && sed -i "s/tmp_out/$PARTITION/g" "fs_config-$PARTITION"
             fi
+            
             sed -i "s/\x0//g" "file_context-$PARTITION" \
                 && sed -i 's/\./\\./g' "file_context-$PARTITION" \
                 && sed -i 's/\+/\\+/g' "file_context-$PARTITION" \
@@ -255,7 +258,6 @@ EXTRACT_OS_PARTITIONS()
 
     cd "$PDR"
 }
-
 EXTRACT_AVB_BINARIES()
 {
     local PDR
