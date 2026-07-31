@@ -23,4 +23,7 @@ TARGET_HAS_SYSTEM_EXT=false
 # a debloated product partition. Place it within
 # system instead.
 TARGET_HAS_PRODUCT=false
-
+# There aren't any present target firmwares in config.sh 
+# so you have to add it yourself.
+TARGET_ASSERT_MODEL="SM-A705F,SM-A705FN,SM-A705GM,SM-A705MN,SM-A7050,SM-A705W"
+TARGET_FIRMWARE="SM-A705FN/EUX/A705FNXXU5DXD2"  # Replace EUX/version with your actual region/build
