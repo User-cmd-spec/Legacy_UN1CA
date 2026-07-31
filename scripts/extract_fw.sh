@@ -142,6 +142,14 @@ EXTRACT_OS_PARTITIONS()
     local SHOULD_EXTRACT=false
     local SHOULD_EXTRACT_SUPER=false
     local PARTITION_MASK=".img"
+	
+	if tar tf "$AP_TAR" "super.img.lz4" >/dev/null 2>&1; then
+    # existing super extraction
+else
+    echo "No super.img, extracting system.img"
+    tar xf "$AP_TAR" "system.img.lz4"
+    lz4 -d -q --rm system.img.lz4 system.img
+fi
 
     echo "- Extracting OS partitions..."
     cd "$FW_DIR/${MODEL}_${REGION}"
