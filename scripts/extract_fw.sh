@@ -75,7 +75,7 @@ EXTRACT_CSC_PARTITIONS()
         tar tf "$CSC_TAR" "$file" &>/dev/null || continue
         echo "Extracting ${file%.img.lz4}"
         tar xf "$CSC_TAR" "$file" && lz4 -d -q --rm "$file" "${file%.lz4}.sparse"
-	simg2img "${file%.lz4}.sparse" "${file%.lz4}" && rm "${file%.lz4}.sparse"
+        simg2img "${file%.lz4}.sparse" "${file%.lz4}" && rm "${file%.lz4}.sparse"
 
         [ -d "tmp_out" ] && mountpoint -q "tmp_out" && sudo umount "tmp_out"
         mkdir -p "tmp_out"
@@ -88,45 +88,45 @@ EXTRACT_CSC_PARTITIONS()
         for i in $($PREFIX find "${file%.img.lz4}"); do
            $PREFIX chown -h "$(whoami)":"$(whoami)" "$i"
         done
-        [[ -e ""${file%.img.lz4}"/lost+found" ]] && rm -rf ""${file%.img.lz4}"/lost+found"
+        [[ -e "${file%.img.lz4}/lost+found" ]] && rm -rf "${file%.img.lz4}/lost+found"
 
-            echo "Generating fs_config/file_context for ${file%.lz4}"
-            [ -f "file_context-${file%.img.lz4}" ] && rm "file_context-${file%.img.lz4}"
-            [ -f "fs_config-${file%.img.lz4}" ] && rm "fs_config-${file%.img.lz4}"
-            while read -r i; do
-                {
-                    echo -n "$i "
-                    $PREFIX getfattr -n security.selinux --only-values -h "$i"
-                    echo ""
-                } >> "file_context-${file%.img.lz4}"
+        echo "Generating fs_config/file_context for ${file%.lz4}"
+        [ -f "file_context-${file%.img.lz4}" ] && rm "file_context-${file%.img.lz4}"
+        [ -f "fs_config-${file%.img.lz4}" ] && rm "fs_config-${file%.img.lz4}"
+        while read -r i; do
+            {
+                echo -n "$i "
+                $PREFIX getfattr -n security.selinux --only-values -h "$i"
+                echo ""
+            } >> "file_context-${file%.img.lz4}"
 
-                case "$i" in
-                    *"run-as" | *"simpleperf_app_runner")
-                        CAPABILITIES="0xc0"
-                        ;;
-                    *)
-                        CAPABILITIES="0x0"
-                        ;;
-                esac
-                $PREFIX stat -c "%n %u %g %a capabilities=$CAPABILITIES" "$i" >> "fs_config-${file%.img.lz4}"
-            done <<< "$($PREFIX find "tmp_out")"
-            if [ "$PARTITION" = "system" ]; then
-                sed -i "s/tmp_out /\/ /g" "file_context-${file%.img.lz4}" \
-                    && sed -i "s/tmp_out\//\//g" "file_context-${file%.img.lz4}"
-                sed -i "s/tmp_out / /g" "fs_config-${file%.img.lz4}" \
-                    && sed -i "s/tmp_out\///g" "fs_config-${file%.img.lz4}"
-            else
-                sed -i "s/tmp_out/\/${file%.img.lz4}/g" "file_context-${file%.img.lz4}"
-                sed -i "s/tmp_out / /g" "fs_config-${file%.img.lz4}" \
-                    && sed -i "s/tmp_out/${file%.img.lz4}/g" "fs_config-${file%.img.lz4}"
-            fi
-            sed -i "s/\x0//g" "file_context-${file%.img.lz4}" \
-                && sed -i 's/\./\\./g' "file_context-${file%.img.lz4}" \
-                && sed -i 's/\+/\\+/g' "file_context-${file%.img.lz4}" \
-                && sed -i 's/\[/\\[/g' "file_context-${file%.img.lz4}"
+            case "$i" in
+                *"run-as" | *"simpleperf_app_runner")
+                    CAPABILITIES="0xc0"
+                    ;;
+                *)
+                    CAPABILITIES="0x0"
+                    ;;
+            esac
+            $PREFIX stat -c "%n %u %g %a capabilities=$CAPABILITIES" "$i" >> "fs_config-${file%.img.lz4}"
+        done <<< "$($PREFIX find "tmp_out")"
+        if [ "$PARTITION" = "system" ]; then
+            sed -i "s/tmp_out /\/ /g" "file_context-${file%.img.lz4}" \
+                && sed -i "s/tmp_out\//\//g" "file_context-${file%.img.lz4}"
+            sed -i "s/tmp_out / /g" "fs_config-${file%.img.lz4}" \
+                && sed -i "s/tmp_out\///g" "fs_config-${file%.img.lz4}"
+        else
+            sed -i "s/tmp_out/\/${file%.img.lz4}/g" "file_context-${file%.img.lz4}"
+            sed -i "s/tmp_out / /g" "fs_config-${file%.img.lz4}" \
+                && sed -i "s/tmp_out/${file%.img.lz4}/g" "fs_config-${file%.img.lz4}"
+        fi
+        sed -i "s/\x0//g" "file_context-${file%.img.lz4}" \
+            && sed -i 's/\./\\./g' "file_context-${file%.img.lz4}" \
+            && sed -i 's/\+/\\+/g' "file_context-${file%.img.lz4}" \
+            && sed -i 's/\[/\\[/g' "file_context-${file%.img.lz4}"
 
-            $PREFIX umount "tmp_out"
-            rm "${file%.lz4}"
+        $PREFIX umount "tmp_out"
+        rm "${file%.lz4}"
 
         rm -r "tmp_out"
     done
@@ -142,18 +142,18 @@ EXTRACT_OS_PARTITIONS()
     local SHOULD_EXTRACT=false
     local SHOULD_EXTRACT_SUPER=false
     local PARTITION_MASK=".img"
-	
-	if tar tf "$AP_TAR" "super.img.lz4" >/dev/null 2>&1; then
-    # existing super extraction
-	true
-else
-    echo "No super.img, extracting system.img"
-    tar xf "$AP_TAR" "system.img.lz4"
-    lz4 -d -q --rm system.img.lz4 system.img
-fi
+
+    cd "$FW_DIR/${MODEL}_${REGION}"
+
+    if tar tf "$AP_TAR" "super.img.lz4" >/dev/null 2>&1; then
+        true
+    else
+        echo "No super.img, extracting system.img"
+        tar xf "$AP_TAR" "system.img.lz4"
+        lz4 -d -q --rm system.img.lz4 system.img
+    fi
 
     echo "- Extracting OS partitions..."
-    cd "$FW_DIR/${MODEL}_${REGION}"
 
     local COMMON_FOLDERS="odm product system vendor"
     for folder in $COMMON_FOLDERS
@@ -171,13 +171,12 @@ fi
             { lpunpack "super.img" > /dev/null; } 2>&1
             lpdump "super.img" > "lpdump" && rm "super.img"
 
-	    if [ -f "system_a.img" ]; then
-		echo "Dyanamic Partitions Detected!"
-		COMMON_FOLDERS="odm_a product_a system_a vendor_a"
-		PARTITION_MASK="_a.img"
-	    fi
-    fi
-fi
+            if [ -f "system_a.img" ]; then
+                echo "Dynamic Partitions Detected!"
+                COMMON_FOLDERS="odm_a product_a system_a vendor_a"
+                PARTITION_MASK="_a.img"
+            fi
+        fi
 
         [ -d "tmp_out" ] && mountpoint -q "tmp_out" && sudo umount "tmp_out"
         mkdir -p "tmp_out"
