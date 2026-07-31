@@ -83,3 +83,10 @@ jobs:
         run: |
           source ./buildenv.sh ${{ matrix.target }}
           ./scripts/make_rom.sh -f
+
+      - name: "Upload flasheable zip to Github Artifact"
+        uses: actions/upload-artifact@v4
+        with:
+          name: LegacyUI-Artifacts-${{ matrix.target }}
+          path: out/LegacyUI_*_${{ matrix.target }}-sign.zip
+          continue-on-error: true
