@@ -149,8 +149,8 @@ EXTRACT_OS_PARTITIONS()
         true
     else
         echo "No super.img, extracting system.img"
-        tar xf "$AP_TAR" "system.img.lz4"
-        lz4 -d -q --rm system.img.lz4 system.img
+        tar xf "$AP_TAR" "system.img.ext4.lz4"
+        lz4 -d -q --rm system.img.ext4.lz4 system.img
     fi
 
     echo "- Extracting OS partitions..."
