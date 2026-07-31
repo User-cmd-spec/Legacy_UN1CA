@@ -32,6 +32,7 @@ COPY_SOURCE_FIRMWARE()
         cp -a --preserve=all "$FW_DIR/${MODEL}_${REGION}/system" "$WORK_DIR"
         cp --preserve=all "$FW_DIR/${MODEL}_${REGION}/file_context-system" "$WORK_DIR/configs"
         cp --preserve=all "$FW_DIR/${MODEL}_${REGION}/fs_config-system" "$WORK_DIR/configs"
+    fi
 
 # Differentiate system_ext & product status
     if $SOURCE_HAS_SYSTEM_EXT; then
