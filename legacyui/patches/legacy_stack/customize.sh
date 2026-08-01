@@ -1,6 +1,7 @@
 {
 SOURCE_EXTRA_FIRMWARES="SM-A366B/EUX/351384481564824"
 mkdir $WORK_DIR/system/system/system_ext/apex
+mkdir -p out/fw/SM-A366B_EUX/system/system/bin/ && touch out/fw/SM-A366B_EUX/system/system/bin/linker_asan
 } || {
 echo "apex folder already exists"
 }
