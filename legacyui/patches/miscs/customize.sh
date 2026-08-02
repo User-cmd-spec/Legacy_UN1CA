@@ -1,3 +1,10 @@
+SMALI_PATCH() {
+    local PARTITION="$1"
+    local TARGET_FILE="$2"
+    shift 2
+    echo "Processing patch instruction for: $TARGET_FILE"
+}
+
 SET_PROP_IF_DIFF "vendor" "ro.oem_unlock_supported" "0"
 
 # Better device/model detection in CoreRune
