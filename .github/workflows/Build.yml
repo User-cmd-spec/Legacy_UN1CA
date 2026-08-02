@@ -82,7 +82,9 @@ jobs:
       - name: Build ROM
         run: |
           source ./buildenv.sh ${{ matrix.target }}
+          echo "SOURCE=$SOURCE" >> $GITHUB_ENV 
           ./scripts/make_rom.sh -f
+
 
       - name: "Upload flasheable zip to Github Artifact"
         uses: actions/upload-artifact@v4
