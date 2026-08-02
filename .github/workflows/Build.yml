@@ -82,7 +82,7 @@ jobs:
       - name: Build ROM
         run: |
           source ./buildenv.sh ${{ matrix.target }}
-          echo "SOURCE=$SOURCE" >> $GITHUB_ENV 
+          export SOURCE="$SRC_DIR/out/work_dir/system"
           ./scripts/make_rom.sh -f
 
 
