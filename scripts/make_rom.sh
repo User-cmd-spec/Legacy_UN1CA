@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+pwd
+ls -l /home/runner/work/Legacy_UN1CA/Legacy_UN1CA/
 
 set -Eeuo pipefail
 START=$SECONDS
