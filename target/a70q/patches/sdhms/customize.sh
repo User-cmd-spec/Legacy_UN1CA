@@ -2,7 +2,7 @@ export SOURCE="$PWD/out/target/a70q/system"
 export WORK_DIR="$PWD/out/target/a70q"
 
 echo "Adding ARMv8 SDHMS"
-ADD_TO_WORK_DIR "$SOURCE_EXTRA_FIRMWARES" "system" "system/priv-app/SamsungDeviceHealthManagerService/SamsungDeviceHealthManagerService.apk" 0 0 644 "u:object_r:system_file:s0"
+ADD_TO_WORK_DIR "$SOURCE" "system" "system/priv-app/SamsungDeviceHealthManagerService/SamsungDeviceHealthManagerService.apk" 0 0 644 "u:object_r:system_file:s0"
 
 echo "Add SM6150 flags on SSRM"
 
