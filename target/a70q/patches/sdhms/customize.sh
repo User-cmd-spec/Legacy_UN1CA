@@ -1,5 +1,6 @@
 export SOURCE="$PWD/out/target/a70q/system"
 export WORK_DIR="$PWD/out/target/a70q"
+mkdir -p "$PWD/out/fw/_home"
 
 echo "Adding ARMv8 SDHMS"
 ADD_TO_WORK_DIR "$SOURCE" "system" "system/priv-app/SamsungDeviceHealthManagerService/SamsungDeviceHealthManagerService.apk" 0 0 644 "u:object_r:system_file:s0"
