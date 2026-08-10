@@ -20,24 +20,16 @@
 
 set -e
 
-# Type the buzzheavier link here
-A366_AP="https://buzzheavier.com/70gjsofwji35"
-A366_BL="https://buzzheavier.com/w3a582ba9obg"
+A366_AP="https://ts.buzzheavier.com/d/dmxgprk0tnzv?v=eKvmYqqCKG-TqZ_o8I4txApjCvgc9hawXWIF0vo5sZ7iUsnTqchhPSx1P8GLAJId_KK3od_upIEISX-TozoP3kTphHhFKc0wyA6-Bd8eKp6RwhfkJIdDcKqVnWEmAyRx0CerY8xMMo7-91tEnDgWKPhxCdrBMyTgTKEpk0BovuJ2UkgPzxLncR0SR4LqtA3IvaUMhdH3vj4QdxSEG-1QTJIahGB2XgajuusK2de9P-AIk7oa8uyFSJlnGsnGLNLcQ0GTeUGfuZXg7kqXCRrXIrQ2tGmOSof9LVW-QfTVT8eY2WDtzTmtzRFXtI_swYtrna1bn16kAbric9_IE3QIUj37eCJAy8ZOywxw"
+A366_BL="https://ts.buzzheavier.com/d/w3a582ba9obg?v=U2E5a-o9L1pwLYYESK7sf8WSx7LS_h9TEpbRarmZQYmnbTCwGQmurvL_etsI_Tqb0I0FECOAngWvUkTexanYxMLOo1biAUwO1Ha2B5Zjwu_AQ2LRNxyEIipoq-lR18F4KDsP1NBeeE0NxP36p5ddszBpuqlft2qDRtTvgpcnk_Erx9Iw9uQrDqQJpq66oiSYHnk5RCt693tYT628MXKA7zwEnUa8iwyZWgztc4Hb4qLPuZsFQrxB5sQJc_R1p4T-BuKH5JwluAN7H_vO8dYmNpOoTieOTNouLnksywhSxmf49Ma6fAEMQd6c0dWNBbGsY-yw8JoaKg"
 
-A705FN_AP="https://buzzheavier.com/yg5k78unqv7z"
-A705FN_BL="https://buzzheavier.com/k7qga78h2enm"
+A705FN_AP="https://ts.buzzheavier.com/d/iivnn2ka3pnp?v=dY3Iuw8R-VXVS-6fr9vLjHzXZ-wKtUzmvoOmjB-Vc5lqph1wDvMXp11z9Sk8Hsgi6v6JNdTYI7WzvxTdmivhs-NW3d9n034yEuh5mPV1prVSyuCjFQWb1CUgDFqVtoZtPulHb6LS3a0clN2S4pf7L8-3i65B_VIJ-62XJFSuZqU5_UIauAJUE3YOUxRvN9fbs5Jo1pbjfCHp__GKwwj8rrShN0LorDlvJG8MeMsmHdSNR1tlnQs7AvdYu2c_4ihI3rpKury8NdwQaTqFV8Io-ZeQZeaq2NUY1XHm77nUrgwg9CgsLZNQe4m4OqZZh5cm1fDP64xXWYgZCOdpkbfKEz0eZQ"
+A705FN_BL="https://ts.buzzheavier.com/d/ptawjbdqas7q?v=YBgp5j6zS2FdmBVJOMkVDYwqTyVW6JQdkNxuibtqpHXxSvQxQOixA8VNanfmqE6eLkbxa-rLq3RfN5_-G3yJY8wLUEpzjZouiHMOhXhw5YmIf6pwyUIEoXE_CVfeAxImqc1nTnz4GvuXW1MqoAneZxzGEn-cq-5z-KGWbjGK29DUrbFptQnZkuNQm040siTjxOZ4yCdSZXFnQ6TCc2rrKBQj_rIU29eRXyjase1SWQ32Kq_W4-JiPWoK4N1oeVSo-YR-rlThuQ6XZhj_urXnPS6eEzyyYnA8oes-Exb-9kDaS5DWX8s2TO7h7KCfmbM"
 
 GET_LATEST_FIRMWARE()
 {
     curl -s --retry 5 --retry-delay 5 "https://fota-cloud-dn.ospserver.net/firmware/$REGION/$MODEL/version.xml" \
         | grep latest | sed 's/^[^>]*>//' | sed 's/<.*//'
-}
-
-CONVERT_TO_API_URL()
-{
-    local input_url="$1"
-    # Sends a POST request to Buzzheavier's endpoint to grab the direct file link
-    curl -s -X POST "$input_url/download" | grep -o 'https://[^"]*' | head -n 1
 }
 
 DOWNLOAD_FIRMWARE()
@@ -53,12 +45,12 @@ DOWNLOAD_FIRMWARE()
 
     case "$MODEL" in
         *A366*|*a366*)
-            AP_URL=$(CONVERT_TO_API_URL "$A366_AP")
-            BL_URL=$(CONVERT_TO_API_URL "$A366_BL")
+            AP_URL="$A366_AP"
+            BL_URL="$A366_BL"
             ;;
         *A705*|*a705*|*s911*|*S911*)
-            AP_URL=$(CONVERT_TO_API_URL "$A705FN_AP")
-            BL_URL=$(CONVERT_TO_API_URL "$A705FN_BL")
+            AP_URL="$A705FN_AP"
+            BL_URL="$A705FN_BL"
             ;;
         *)
             echo "Error: No matching Buzzheavier URLs configured for model $MODEL"
@@ -83,6 +75,7 @@ DOWNLOAD_FIRMWARE()
 }
 
 FIRMWARES=("SM-A366B/EUX" "SM-A705FN/EUX")
+
 
 [ -n "$SOURCE_FIRMWARE" ] && FIRMWARES+=("$SOURCE_FIRMWARE")
 
