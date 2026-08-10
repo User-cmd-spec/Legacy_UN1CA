@@ -17,6 +17,9 @@
 #
 pwd
 ls -l /home/runner/work/Legacy_UN1CA/Legacy_UN1CA/
+ls -l /home/runner/work/Legacy_UN1CA/Legacy_UN1CA/out
+ls -l /home/runner/work/Legacy_UN1CA/Legacy_UN1CA//out/fw
+echo "Start making rom."
 
 set -Eeuo pipefail
 START=$SECONDS
