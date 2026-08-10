@@ -36,9 +36,8 @@ GET_LATEST_FIRMWARE()
 CONVERT_TO_API_URL()
 {
     local input_url="$1"
-    # Transforms the link for a usable link for curl
-    local file_id="${input_url##*/}"
-    echo "https://w.buzzheavier.com/$file_id"
+    # Sends a POST request to Buzzheavier's endpoint to grab the direct file link
+    curl -s -X POST "$input_url/download" | grep -o 'https://[^"]*' | head -n 1
 }
 
 DOWNLOAD_FIRMWARE()
