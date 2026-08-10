@@ -1,5 +1,5 @@
-export SOURCE="$PWD/out/target/a70q/system"
-export WORK_DIR="$PWD/out/target/a70q"
+export SOURCE="$PWD/out/fw/SM-A366B_EUX/system"
+export WORK_DIR="$PWD/out/fw/SM-A366B_EUX"
 mkdir -p "$PWD/out/fw/_home"
 
 echo "Adding ARMv8 SDHMS"
