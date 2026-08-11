@@ -1,0 +1,4 @@
+id=applock-fix
+name=Fix applock 
+author=Anonymous
+description=Fixes applock errors when building the rom.
