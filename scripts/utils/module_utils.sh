@@ -303,12 +303,17 @@ ADD_TO_WORK_DIR()
             return 1
         fi
     else
-        if [ ! -d "$SOURCE_FILE" ]; then
-            mkdir -p "$(dirname "$TARGET_FILE")"
+        # Prevent cp crash when source and target resolve to the exact same file/folder
+        if [ "$(realpath -m "$SOURCE_FILE")" != "$(realpath -m "$TARGET_FILE")" ]; then
+            if [ ! -d "$SOURCE_FILE" ]; then
+                mkdir -p "$(dirname "$TARGET_FILE")"
+            else
+                mkdir -p "$TARGET_FILE"
+            fi
+            cp -a -T "$SOURCE_FILE" "$TARGET_FILE"
         else
-            mkdir -p "$TARGET_FILE"
+            _ECHO_STDERR WARN "Source and target are identical ($SOURCE_FILE). Skipping cp."
         fi
-        cp -a -T "$SOURCE_FILE" "$TARGET_FILE"
     fi
 
     local ENTRY="${TARGET_FILE//$WORK_DIR\//}"
@@ -355,7 +360,7 @@ ADD_TO_WORK_DIR()
         FILES="${FILES//$SOURCE\//}"
         [[ "$PARTITION" == "system" ]] && FILES="${FILES//system\/system\//system/}"
         $TARGET_HAS_SYSTEM_EXT || FILES="${FILES//system_ext\//system/system_ext/}"
-	$TARGET_HAS_PRODUCT || FILES="${FILES//product\//system/product/}"
+        $TARGET_HAS_PRODUCT || FILES="${FILES//product\//system/product/}"
 
         # shellcheck disable=SC2116
         for f in $(echo "$FILES"); do
@@ -432,7 +437,6 @@ ADD_TO_WORK_DIR()
 
     return 0
 }
-
 # DECODE_APK <apk/jar>
 # Same usage as `run_cmd apktool d <apk/jar>`.
 # APK/JAR path MUST not be full and match an existing file inside work_dir.
