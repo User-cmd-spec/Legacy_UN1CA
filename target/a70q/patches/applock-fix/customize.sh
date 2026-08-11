@@ -24,4 +24,4 @@ EOF
 
 chmod 644 "$TARGET_FILE"
 
-ADD_TO_WORK_DIR "system/system/etc/permissions/privapp-permissions-com.samsung.android.applock.xml"
+ADD_TO_WORK_DIR "$TARGET_FILE" "system" "system/etc/permissions/privapp-permissions-com.samsung.android.applock.xml" 0 0 644 "u:object_r:system_file:s0"
