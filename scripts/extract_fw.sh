@@ -145,17 +145,21 @@ EXTRACT_OS_PARTITIONS()
 
     cd "$FW_DIR/${MODEL}_${REGION}"
 
-    if tar tf "$AP_TAR" "super.img.lz4" >/dev/null 2>&1; then
+if tar tf "$AP_TAR" "super.img.lz4" >/dev/null 2>&1; then
         HAS_SUPER=true
     else
         for part in system vendor product odm; do
             if tar tf "$AP_TAR" "${part}.img.ext4.lz4" >/dev/null 2>&1; then
                 tar xf "$AP_TAR" "${part}.img.ext4.lz4"
-                lz4 -d -q --rm "${part}.img.ext4.lz4" "${part}.img"
+                lz4 -d -q --rm "${part}.img.ext4.lz4" "${part}.img.sparse"
+                simg2img "${part}.img.sparse" "${part}.img" && rm "${part}.img.sparse"
+            elif tar tf "$AP_TAR" "${part}.img.lz4" >/dev/null 2>&1; then
+                tar xf "$AP_TAR" "${part}.img.lz4"
+                lz4 -d -q --rm "${part}.img.lz4" "${part}.img.sparse"
+                simg2img "${part}.img.sparse" "${part}.img" && rm "${part}.img.sparse"
             fi
         done
     fi
-
     echo "- Extracting OS partitions..."
 
     local COMMON_FOLDERS="odm product system vendor"
