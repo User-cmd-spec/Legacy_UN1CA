@@ -1,4 +1,5 @@
 export SOURCE="$PWD/out/fw/SM-A366B_EUX/system"
+export WORK_DIR="$PWD/out/fw/SM-A366B_EUX"
 if [ ! "$(GET_PROP "system" "ro.unica.codename")" ]; then
     # Match latest Samsung's flagship device codename
     ROM_CODENAME="$(basename "$MODPATH")"
