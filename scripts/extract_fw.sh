@@ -24,10 +24,12 @@ GET_IMG_FS_TYPE() {
 _MOVE_CONFIGS() {
     mkdir -p configs 2>/dev/null
     for cfg in fs_config-* file_context-*; do
-        [ -f "$cfg" ] && mv "$cfg" configs/ 2>/dev/null
+        if [ -f "$cfg" ]; then
+            mv "$cfg" configs/ 2>/dev/null
+            ln -sf "configs/$cfg" "$cfg" 2>/dev/null
+        fi
     done
 }
-
 EXTRACT_KERNEL_BINARIES() {
     local PDR="$(pwd)"
     echo "- Extracting kernel binaries..."
