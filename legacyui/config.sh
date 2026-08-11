@@ -16,8 +16,8 @@
 #
 
 # UN1CA configuration file
-ROM_VERSION="1.0.2"
+ROM_VERSION="3.1.0"
 ROM_VERSION+="-$(git rev-parse --short HEAD)"
-ROM_CODENAME="Crassed"
+ROM_CODENAME="Quirky"
 
 return 0
