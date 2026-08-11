@@ -35,7 +35,7 @@ EXTRACT_KERNEL_BINARIES() {
     for file in boot.img.lz4 dtbo.img.lz4 init_boot.img.lz4 vendor_boot.img.lz4; do
         [ -f "${file%.lz4}" ] && continue
         tar tf "$AP_TAR" "$file" &>/dev/null || continue
-        echo "Extracting ${file%.lz4}"
+        echo "  - Extracting kernel image: ${file%.lz4}"
         tar xf "$AP_TAR" "$file" 2>/dev/null && lz4 -d -q --rm "$file" "${file%.lz4}" 2>/dev/null
     done
     cd "$PDR"
@@ -48,7 +48,7 @@ EXTRACT_CSC_PARTITIONS() {
     for file in prism.img.lz4 optics.img.lz4; do
         [ -f "${file%.lz4}" ] && continue
         tar tf "$CSC_TAR" "$file" &>/dev/null || continue
-        echo "Extracting ${file%.img.lz4}"
+        echo "  - Unpacking CSC partition: ${file%.img.lz4}"
         tar xf "$CSC_TAR" "$file" 2>/dev/null && lz4 -d -q --rm "$file" "${file%.lz4}.sparse" 2>/dev/null
         simg2img "${file%.lz4}.sparse" "${file%.lz4}" 2>/dev/null
         rm -f "${file%.lz4}.sparse"
@@ -68,7 +68,7 @@ EXTRACT_CSC_PARTITIONS() {
         done
         [[ -e "${file%.img.lz4}/lost+found" ]] && rm -rf "${file%.img.lz4}/lost+found"
 
-        echo "Generating fs_config/file_context for ${file%.lz4}"
+        echo "  - Generating fs_config and file_context for ${file%.img.lz4}"
         rm -f "file_context-${file%.img.lz4}" "fs_config-${file%.img.lz4}"
         
         $PREFIX find "tmp_out" 2>/dev/null | while read -r i; do
@@ -99,9 +99,11 @@ EXTRACT_OS_PARTITIONS() {
     if tar tf "$AP_TAR" "super.img.lz4" >/dev/null 2>&1; then
         HAS_SUPER=true
     else
+        echo "- Unpacking raw non-super partitions from AP tar..."
         for part in system vendor product odm; do
             for ext in "${part}.img.ext4.lz4" "${part}.img.lz4"; do
                 if tar tf "$AP_TAR" "$ext" >/dev/null 2>&1; then
+                    echo "  - Extracting ${ext}..."
                     tar xf "$AP_TAR" "$ext" 2>/dev/null
                     lz4 -d -q --rm "$ext" "${part}.img.sparse" 2>/dev/null
                     simg2img "${part}.img.sparse" "${part}.img" 2>/dev/null
@@ -111,7 +113,7 @@ EXTRACT_OS_PARTITIONS() {
             done
         done
     fi
-    echo "- Extracting OS partitions..."
+    echo "- Processing OS partitions..."
 
     for folder in odm product system vendor; do
         [ ! -d "$folder" ] && SHOULD_EXTRACT=true
@@ -120,7 +122,7 @@ EXTRACT_OS_PARTITIONS() {
 
     if $SHOULD_EXTRACT; then
         if [ "$HAS_SUPER" = true ] && { [ ! -f "lpdump" ] || $SHOULD_EXTRACT_SUPER; }; then
-            echo "Extracting super.img"
+            echo "  - Extracting dynamic super.img..."
             tar xf "$AP_TAR" "super.img.lz4" 2>/dev/null
             lz4 -d -q --rm "super.img.lz4" "super.img.sparse" 2>/dev/null
             simg2img "super.img.sparse" "super.img" 2>/dev/null
@@ -139,7 +141,13 @@ EXTRACT_OS_PARTITIONS() {
         for img in *.img; do
             [ -f "$img" ] || continue
             local PARTITION="${img%$PARTITION_MASK}" PREFIX=""
-            case "$(GET_IMG_FS_TYPE "$img")" in
+            local FS_TYPE="$(GET_IMG_FS_TYPE "$img")"
+
+            if [ "$FS_TYPE" != "unknown" ]; then
+                echo "  - Unpacking filesystem content: ${PARTITION} ($FS_TYPE)"
+            fi
+
+            case "$FS_TYPE" in
                 "erofs")
                     rm -rf "$PARTITION" && mkdir -p "$PARTITION"
                     fuse.erofs "$img" "tmp_out" &>/dev/null
@@ -158,6 +166,7 @@ EXTRACT_OS_PARTITIONS() {
                 *) continue ;;
             esac
 
+            echo "  - Generating fs_config and file_context for ${PARTITION}"
             rm -f "file_context-$PARTITION" "fs_config-$PARTITION"
             $PREFIX find "tmp_out" 2>/dev/null | while read -r i; do
                 [ -z "$i" ] && continue
@@ -193,11 +202,11 @@ EXTRACT_AVB_BINARIES() {
     echo "- Extracting AVB binaries..."
     cd "$FW_DIR/${MODEL}_${REGION}" 2>/dev/null || return 0
     if [ ! -f "vbmeta.img" ] && tar tf "$BL_TAR" "vbmeta.img.lz4" &>/dev/null; then
-        echo "Extracting vbmeta.img"
+        echo "  - Extracting vbmeta.img"
         tar xf "$BL_TAR" "vbmeta.img.lz4" 2>/dev/null && lz4 -d -q --rm "vbmeta.img.lz4" "vbmeta.img" 2>/dev/null
     fi
     if [ ! -f "vbmeta_patched.img" ] && [ -f "vbmeta.img" ]; then
-        echo "Generating vbmeta_patched.img"
+        echo "  - Generating vbmeta_patched.img"
         cp --preserve=all "vbmeta.img" "vbmeta_patched.img" 2>/dev/null
         printf "\x03" | dd of="vbmeta_patched.img" bs=1 seek=123 count=1 conv=notrunc &> /dev/null
     fi
