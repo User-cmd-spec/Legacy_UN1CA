@@ -1,4 +1,5 @@
 #!/bin/bash
+export WORK_DIR="$PWD/out/fw/SM-A366B_EUX"
 
 if [ -n "$WORK_DIR" ]; then
     TARGET_FILE="$WORK_DIR/system/system/etc/permissions/privapp-permissions-com.samsung.android.applock.xml"
@@ -22,3 +23,5 @@ cat << 'EOF' > "$TARGET_FILE"
 EOF
 
 chmod 644 "$TARGET_FILE"
+
+ADD_TO_WORK_DIR "system/system/etc/permissions/privapp-permissions-com.samsung.android.applock.xml"
