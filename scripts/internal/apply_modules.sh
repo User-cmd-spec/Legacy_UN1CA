@@ -103,6 +103,18 @@ APPLY_MODULE()
     echo "- Processing \"$MODNAME\" by @$MODAUTH"
 
     if ! grep -q '^SKIPUNZIP=1$' "$MODPATH/customize.sh" 2> /dev/null; then
+        # Unlink pre-existing symlinks in WORK_DIR before ADD_TO_WORK_DIR calls mkdir -p
+        for part in odm product system_ext vendor; do
+            if [ -d "$MODPATH/$part" ]; then
+                for base in "$WORK_DIR" "$WORK_DIR/system" "$WORK_DIR/system/system"; do
+                    if [ -L "$base/$part" ]; then
+                        echo "  - Unlinking broken symlink: $base/$part"
+                        rm -f "$base/$part"
+                    fi
+                done
+            fi
+        done
+
         [ -d "$MODPATH/odm" ] && ADD_TO_WORK_DIR "$MODPATH" "odm" "." 0 0 755 "u:object_r:vendor_file:s0"
         [ -d "$MODPATH/product" ] && ADD_TO_WORK_DIR "$MODPATH" "product" "." 0 0 755 "u:object_r:system_file:s0"
         [ -d "$MODPATH/system" ] && ADD_TO_WORK_DIR "$MODPATH" "system" "." 0 0 755 "u:object_r:system_file:s0"
@@ -123,7 +135,6 @@ APPLY_MODULE()
         done
     fi
 }
-#]
 
 if [ "$#" == 0 ]; then
     echo "Usage: apply_modules <folder>"
