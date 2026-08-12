@@ -19,6 +19,9 @@ pwd
 ls -l /home/runner/work/Legacy_UN1CA/Legacy_UN1CA/
 ls -l /home/runner/work/Legacy_UN1CA/Legacy_UN1CA/out
 ls -l /home/runner/work/Legacy_UN1CA/Legacy_UN1CA//out/fw
+ls -l /home/runner/work/Legacy_UN1CA/Legacy_UN1CA//out/fw/SM-A366B_EUX
+ls -l /home/runner/work/Legacy_UN1CA/Legacy_UN1CA//out/fwSM-A705FN_EUX
+ls -l /home/runner/work/Legacy_UN1CA/Legacy_UN1CA//out/odin
 echo "Start making rom."
 
 set -Eeuo pipefail
