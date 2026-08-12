@@ -1,3 +1,5 @@
+export WORK_DIR="$PWD/out/fw/SM-A366B_EUX"
+export SOURCE="$PWD/out/fw/SM-A366B_EUX/system"
 mkdir -p "$WORK_DIR/system/system/etc/permissions"
 TARGET_XML="$WORK_DIR/system/system/etc/permissions/privapp-permissions-com.samsung.android.applock.xml"
 
