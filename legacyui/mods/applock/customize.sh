@@ -2,7 +2,7 @@ mkdir -p "$WORK_DIR/system/system/etc/permissions"
 TARGET_XML="$WORK_DIR/system/system/etc/permissions/privapp-permissions-com.samsung.android.applock.xml"
 
 if [ ! -f "$TARGET_XML" ]; then
-    cat << 'EOF' > "$TARGET_FILE"
+    cat << 'EOF' > "$TARGET_XML"
 <!--
     This XML file declares which signature|privileged permissions should be granted to privileged
     applications that come with the platform
