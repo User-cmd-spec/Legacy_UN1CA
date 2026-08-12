@@ -22,6 +22,10 @@ ls -l /home/runner/work/Legacy_UN1CA/Legacy_UN1CA//out/fw
 ls -l /home/runner/work/Legacy_UN1CA/Legacy_UN1CA//out/fw/SM-A366B_EUX
 ls -l /home/runner/work/Legacy_UN1CA/Legacy_UN1CA//out/fwSM-A705FN_EUX
 ls -l /home/runner/work/Legacy_UN1CA/Legacy_UN1CA//out/odin
+ls -l /home/runner/work/Legacy_UN1CA/Legacy_UN1CA//out/fw/SM-A366B_EUX/system
+ls -l /home/runner/work/Legacy_UN1CA/Legacy_UN1CA//out/fw/SM-A366B_EUX/system/etc
+ls -l /home/runner/work/Legacy_UN1CA/Legacy_UN1CA//out/fw/SM-A366B_EUX/system/system
+ls -l /home/runner/work/Legacy_UN1CA/Legacy_UN1CA//out/fw/SM-A366B_EUX/system/system/etc
 echo "Start making rom."
 
 set -Eeuo pipefail
