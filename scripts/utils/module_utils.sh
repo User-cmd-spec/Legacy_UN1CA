@@ -841,6 +841,10 @@ _IS_VALID_PARTITION_NAME()
         [[ "$PARTITION" == "system_ext" ]] || [[ "$PARTITION" == "odm" ]] || [[ "$PARTITION" == "vendor_dlkm" ]] || \
         [[ "$PARTITION" == "odm_dlkm" ]] || [[ "$PARTITION" == "system_dlkm" ]]
 }
+
+_IS_VALID_PARTITION_NAME() {
+    IS_VALID_PARTITION_NAME "$@"
+}
 # ]
 
 # ADD_TO_WORK_DIR <source> <partition> <file/dir> <user> <group> <mode> <label>
