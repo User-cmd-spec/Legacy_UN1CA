@@ -191,6 +191,187 @@ _GET_PROP_FILES_PATH()
     echo "${FILES// }"
 }
 
+PRINT_ASSERTIONS()
+{
+    _CHECK_NON_EMPTY_PARAM "BUILD_INFO" "$1" || return 1
+
+    local BUILD_INFO="$1"
+
+    local DEVICE
+    DEVICE="$(grep "^device" <<< "$BUILD_INFO" | cut -d "=" -f 2 -s)"
+
+    if [ "$(grep "^model" <<< "$BUILD_INFO" | cut -d "=" -f 2 -s)" ]; then
+        local TARGET_ASSERT_MODEL
+        TARGET_ASSERT_MODEL="$(grep "^model" <<< "$BUILD_INFO" | cut -d "=" -f 2 -s)"
+        IFS=';' read -r -a TARGET_ASSERT_MODEL <<< "$TARGET_ASSERT_MODEL"
+
+        for i in "${TARGET_ASSERT_MODEL[@]}"; do
+            echo -n 'getprop("ro.boot.em.model") == "'
+            echo -n "$i"
+            echo -n '" || '
+        done
+        echo -n 'abort("E3004: This package is for \"'
+        echo -n "$DEVICE"
+        echo    '\" devices; this is a \"" + getprop("ro.product.device") + "\".");'
+    else
+        echo -n 'getprop("ro.product.device") == "'
+        echo -n "$DEVICE"
+        echo -n '" || abort("E3004: This package is for \"'
+        echo -n "$DEVICE"
+        echo    '\" devices; this is a \"" + getprop("ro.product.device") + "\".");'
+    fi
+
+    if [ ! -d "$SRC_DIR/target/$DEVICE" ]; then
+        LOGE "Folder not found: target/$DEVICE"
+        return 1
+    fi
+
+    if [ -f "$SRC_DIR/target/$DEVICE/installer/assertions.edify" ]; then
+        cat "$SRC_DIR/target/$DEVICE/installer/assertions.edify"
+    fi
+}
+
+EVAL()
+{
+    _CHECK_NON_EMPTY_PARAM "CMD" "$1" || return 1
+
+    local CMD="$1"
+
+    local OUT
+    OUT="$(eval "$CMD" 2>&1)"
+    # shellcheck disable=SC2181,SC2291
+    if [ $? -ne 0 ]; then
+        LOGE "Command returned a non-zero exit code\n"
+        echo -e    '\033[0;31m'"$CMD"'\033[0m\n' >&2
+        echo -n -e '\033[0;33m' >&2
+        echo -n    "$OUT" >&2
+        echo -e    '\033[0m' >&2
+        return 1
+    fi
+
+    return 0
+}
+
+GET_IMAGE_SIZE()
+{
+    _CHECK_NON_EMPTY_PARAM "FILE" "$1" || return 1
+
+    local FILE="$1"
+
+    if [ ! -f "$FILE" ]; then
+        LOGE "File not found: ${FILE//$SRC_DIR\//}"
+        return 1
+    fi
+
+    if IS_SPARSE_IMAGE "$FILE"; then
+        local BLOCK_SIZE
+        local BLOCKS
+        BLOCK_SIZE="$(printf "%d" "0x$(READ_BYTES_AT "$FILE" "12" "4")")"
+        BLOCKS="$(printf "%d" "0x$(READ_BYTES_AT "$FILE" "16" "4")")"
+
+        bc -l <<< "$BLOCKS * $BLOCK_SIZE"
+    else
+        GET_DISK_USAGE "$FILE"
+    fi
+}
+
+GET_DISK_USAGE()
+{
+    _CHECK_NON_EMPTY_PARAM "FILE" "$1" || return 1
+
+    local FILE="$1"
+
+    if [ ! -e "$FILE" ]; then
+        LOGE "File not found: ${FILE//$SRC_DIR\//}"
+        return 1
+    fi
+
+    local SIZE
+    # https://android.googlesource.com/platform/build/+/refs/tags/android-15.0.0_r1/tools/releasetools/build_image.py#63
+    SIZE="$(du -b -k -s "$FILE" | cut -f 1)"
+
+    bc -l <<< "$SIZE * 1024"
+}
+
+PRINT_BUILD_INFO()
+{
+    local SOURCE_BUILD_INFO
+    local TARGET_BUILD_INFO
+
+    if [[ "$#" == "1" ]]; then
+        TARGET_BUILD_INFO="$1"
+    elif [[ "$#" == "2" ]]; then
+        SOURCE_BUILD_INFO="$1"
+        TARGET_BUILD_INFO="$2"
+    else
+        _CHECK_NON_EMPTY_PARAM "BUILD_INFO" "$1"
+        return 1
+    fi
+
+    echo -n "device="
+    grep "^device" <<< "$TARGET_BUILD_INFO" | cut -d "=" -f 2 -s
+    echo -n "version="
+    grep "^version" <<< "$TARGET_BUILD_INFO" | cut -d "=" -f 2 -s
+    echo -n "timestamp="
+    grep "^timestamp" <<< "$TARGET_BUILD_INFO" | cut -d "=" -f 2 -s
+    echo -n "security_patch_version="
+    grep "^security_patch" <<< "$TARGET_BUILD_INFO" | cut -d "=" -f 2 -s
+    echo -n "incremental="
+    if [ "$SOURCE_BUILD_INFO" ]; then
+        grep "^timestamp" <<< "$SOURCE_BUILD_INFO" | cut -d "=" -f 2 -s
+    else
+        echo "0"
+    fi
+}
+
+FILE_EXISTS_IN_TAR()
+{
+    _CHECK_NON_EMPTY_PARAM "TAR" "$1" || return 1
+    _CHECK_NON_EMPTY_PARAM "FILE" "$2" || return 1
+
+    tar tf "$1" "$2" &> /dev/null
+    return $?
+}
+
+COMPARE_SEC_BUILD_VERSION()
+{
+    local STRING1="$1"
+    local STRING2="$2"
+
+    STRING1="$(cut -d "/" -f 1 -s <<< "$STRING1")"
+    STRING2="$(cut -d "/" -f 1 -s <<< "$STRING2")"
+
+    # Samsung Android OS build version scheme works as follows (eg. A528BXXU1DWA4):
+    # - A528B: Model number
+    # - XX: Region (XX = EUR_OPEN)
+    # - U: Firmware type (U = full update, S = security update)
+    # - 1: Rollback protection bit
+    # - D: Major OS version (D = 4th OS rollout)
+    # - W: Year (W = 2023)
+    # - A: Month (A = january)
+    # - 4: Incremental version
+    local STRING1_MAJOR="${STRING1:${#STRING1}-4:1}"
+    local STRING1_YEAR="${STRING1:${#STRING1}-3:1}"
+    local STRING1_MONTH="${STRING1:${#STRING1}-2:1}"
+    local STRING1_INCREMENTAL="${STRING1:${#STRING1}-1:1}"
+
+    local STRING2_MAJOR="${STRING2:${#STRING2}-4:1}"
+    local STRING2_YEAR="${STRING2:${#STRING2}-3:1}"
+    local STRING2_MONTH="${STRING2:${#STRING2}-2:1}"
+    local STRING2_INCREMENTAL="${STRING2:${#STRING2}-1:1}"
+
+    [[ "$STRING1_MAJOR" > "$STRING2_MAJOR" ]] && return 0
+    [[ "$STRING1_MAJOR" < "$STRING2_MAJOR" ]] && return 1
+    [[ "$STRING1_YEAR" > "$STRING2_YEAR" ]] && return 0
+    [[ "$STRING1_YEAR" < "$STRING2_YEAR" ]] && return 1
+    [[ "$STRING1_MONTH" > "$STRING2_MONTH" ]] && return 0
+    [[ "$STRING1_MONTH" < "$STRING2_MONTH" ]] && return 1
+    [[ "$STRING1_INCREMENTAL" > "$STRING2_INCREMENTAL" ]] && return 0
+    [[ "$STRING1_INCREMENTAL" < "$STRING2_INCREMENTAL" ]] && return 1
+
+    return 0
+}
+
 _GET_PROP_LOCATION()
 {
     local FILES
