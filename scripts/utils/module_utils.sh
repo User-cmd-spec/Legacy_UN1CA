@@ -28,7 +28,7 @@ APPLY_PATCH()
     local FILE="$2"
     local PATCH="$3"
 
-    if ! IS_VALID_PARTITION_NAME "$PARTITION"; then
+    if ! _IS_VALID_PARTITION_NAME "$PARTITION"; then
         LOGE "\"$PARTITION\" is not a valid partition name"
         return 1
     fi
