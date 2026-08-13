@@ -454,7 +454,7 @@ LOGE()
     echo -e "${RED}$(_GET_CALLER_INFO)${1}${RESET}" >&2
 }
 
-IS_VALID_PARTITION_NAME()
+_IS_VALID_PARTITION_NAME()
 {
     local PARTITION="$1"
     # https://android.googlesource.com/platform/build/+/refs/tags/android-15.0.0_r1/tools/releasetools/common.py#131
