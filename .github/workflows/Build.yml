@@ -1,4 +1,4 @@
-name: Build LegacyUi but with UN1CA features 
+name: Test for errors
 
 on:
   workflow_dispatch:
