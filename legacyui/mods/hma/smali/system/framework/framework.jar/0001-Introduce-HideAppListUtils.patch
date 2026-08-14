@@ -108,7 +108,7 @@ index 00000000..4cb7203e
 +
 +    return-void
 +.end method
-
++
 +.method private constructor blacklist <init>(Ljava/lang/String;I)V
 +    .locals 0
 +    .annotation system Ldalvik/annotation/MethodParameters;
@@ -332,7 +332,7 @@ index 00000000..c8b84436
 +
 +    move-result-object p0
 +
-+    invoke-direct {v1, p0}, Ljava/util/HashSet;-><init>(Ljava/util/Collection;)V
++    invoke-direct {v1, p0}, Ljava/util/HashSet;-><init>(Ljava/collection;)V
 +
 +    return-object v1
 +
@@ -455,7 +455,7 @@ index 00000000..c8b84436
 +.method public static blacklist shouldHideAppList(Landroid/content/ContentResolver;Ljava/lang/String;)Z
 +    .locals 3
 +
-+    const/4 v0, 0x0
++    const/4 v0, 0{0}
 +
 +    if-eqz p0, :cond_3
 +
