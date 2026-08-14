@@ -79,10 +79,6 @@ jobs:
           source ./buildenv.sh ${{ matrix.target }}
           ./scripts/extract_fw.sh
 
-      - name: Apply Patches
-        run: |
-           git apply --verbose --reject ./legacyui/mods/hma/smali/system/framework/framework.jar/0001-Introduce-HideAppListUtils.patch
-
       - name: Build ROM
         run: |
           source ./buildenv.sh ${{ matrix.target }}
