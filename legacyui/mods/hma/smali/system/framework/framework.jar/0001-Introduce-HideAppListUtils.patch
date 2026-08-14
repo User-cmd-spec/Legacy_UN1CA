@@ -4,9 +4,9 @@ Date: Fri, 24 Oct 2025 01:13:16 +0200
 Subject: [PATCH] Introduce HideAppListUtils
 
 ---
- .../unica/HideAppListUtils$Action.smali       | 152 +++++++
+ .../unica/HideAppListUtils$Action.smali       | 153 +++++++
  .../io/mesalabs/unica/HideAppListUtils.smali  | 411 ++++++++++++++++++
- 2 files changed, 563 insertions(+)
+ 2 files changed, 564 insertions(+)
  create mode 100644 smali/io/mesalabs/unica/HideAppListUtils$Action.smali
  create mode 100644 smali/io/mesalabs/unica/HideAppListUtils.smali
 
@@ -15,7 +15,7 @@ new file mode 100644
 index 00000000..4cb7203e
 --- /dev/null
 +++ b/smali/io/mesalabs/unica/HideAppListUtils$Action.smali
-@@ -0,0 +1,152 @@
+@@ -0,0 +1,153 @@
 +.class final enum Lio/mesalabs/unica/HideAppListUtils$Action;
 +.super Ljava/lang/Enum;
 +.source "HideAppListUtils.java"
@@ -168,6 +168,7 @@ index 00000000..4cb7203e
 +
 +    return-object v0
 +.end method
++
 diff --git a/smali/io/mesalabs/unica/HideAppListUtils.smali b/smali/io/mesalabs/unica/HideAppListUtils.smali
 new file mode 100644
 index 00000000..c8b84436
@@ -332,7 +333,7 @@ index 00000000..c8b84436
 +
 +    move-result-object p0
 +
-+    invoke-direct {v1, p0}, Ljava/util/HashSet;-><init>(Ljava/collection;)V
++    invoke-direct {v1, p0}, Ljava/util/HashSet;-><init>(Ljava/util/Collection;)V
 +
 +    return-object v1
 +
@@ -455,7 +456,7 @@ index 00000000..c8b84436
 +.method public static blacklist shouldHideAppList(Landroid/content/ContentResolver;Ljava/lang/String;)Z
 +    .locals 3
 +
-+    const/4 v0, 0{0}
++    const/4 v0, 0x0
 +
 +    if-eqz p0, :cond_3
 +
