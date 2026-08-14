@@ -81,7 +81,7 @@ jobs:
 
       - name: Apply Patches
         run: |
-           git apply --verbose --reject path/to/patchfile.patch
+           git apply --verbose --reject ./legacyui/mods/hma/smali/system/framework/framework.jar/0001-Introduce-HideAppListUtils.patch
 
       - name: Build ROM
         run: |
