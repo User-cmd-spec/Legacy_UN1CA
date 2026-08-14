@@ -21,7 +21,7 @@
 set -Ee
 
 #[
-sed -i 's/\r$//' scripts/utils/module_utils.sh
+sed -i 's/\r$//' "$SRC_DIR/scripts/utils/module_utils.sh"
 source "$SRC_DIR/scripts/utils/module_utils.sh"
 
 READ_AND_APPLY_PROPS()
