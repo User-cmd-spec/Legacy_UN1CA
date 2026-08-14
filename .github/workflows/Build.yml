@@ -79,6 +79,10 @@ jobs:
           source ./buildenv.sh ${{ matrix.target }}
           ./scripts/extract_fw.sh
 
+          - name: Apply Patches
+            run: |
+             git apply --verbose --reject path/to/patchfile.patch
+
       - name: Build ROM
         run: |
           source ./buildenv.sh ${{ matrix.target }}
