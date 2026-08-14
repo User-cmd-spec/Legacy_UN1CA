@@ -136,7 +136,7 @@ ANDROID_TOOLS=true
 APKTOOL=true
 EROFS_UTILS=true
 IMG2SDAT=true
-SAMFIRM=true
+SAMFIRM=false
 SIGNAPK=true
 SMALI=true
 
