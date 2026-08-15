@@ -78,7 +78,15 @@ jobs:
         run: |
           source ./buildenv.sh ${{ matrix.target }}
           ./scripts/extract_fw.sh
-
+          
+      - name: Debug Patch Failure
+        run: |
+          patch -p1 < patches/HideAppListUtils.patch || {
+            echo "=== Patch failed! Rejection log (.rej files): ==="
+            find . -name "*.rej" -exec cat {} +
+            exit 1
+          }
+          
       - name: Build ROM
         run: |
           source ./buildenv.sh ${{ matrix.target }}
