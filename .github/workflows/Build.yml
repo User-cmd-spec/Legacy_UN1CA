@@ -81,7 +81,7 @@ jobs:
           
       - name: Debug Patch Failure
         run: |
-          PATCH_FILE="$SRC_DIR/legacyui/mods/hma/smali/system/framework/services.jar/0001-Introduce-HideAppListUtils.patch"
+          PATCH_FILE="/home/runner/work/Legacy_UN1CA/Legacy_UN1CA/legacyui/mods/hma/smali/system/framework/services.jar/0001-Introduce-HideAppListUtils.patch"
 
           # 1. Check if the patch file exists
           if [ ! -f "$PATCH_FILE" ]; then
