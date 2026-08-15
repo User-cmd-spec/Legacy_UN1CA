@@ -81,7 +81,7 @@ jobs:
           
       - name: Debug Patch Failure
         run: |
-          patch -p1 < patches/HideAppListUtils.patch || {
+          patch -p1 < $SRC_DIR/legacyui/mods/hma/smali/system/framework/services.jar/0001-Introduce-HideAppListUtils.patch || {
             echo "=== Patch failed! Rejection log (.rej files): ==="
             find . -name "*.rej" -exec cat {} +
             exit 1
