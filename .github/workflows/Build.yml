@@ -81,7 +81,19 @@ jobs:
           
       - name: Debug Patch Failure
         run: |
-          patch -p1 < $SRC_DIR/legacyui/mods/hma/smali/system/framework/services.jar/0001-Introduce-HideAppListUtils.patch || {
+          PATCH_FILE="$SRC_DIR/legacyui/mods/hma/smali/system/framework/services.jar/0001-Introduce-HideAppListUtils.patch"
+
+          # 1. Check if the patch file exists
+          if [ ! -f "$PATCH_FILE" ]; then
+            echo "ERROR: Patch file does not exist at: $PATCH_FILE"
+            echo "Current working directory: $(pwd)"
+            echo "Checking contents of SRC_DIR:"
+            ls -la "$SRC_DIR" 2>/dev/null || echo "SRC_DIR variable is empty or invalid!"
+            exit 1
+          fi
+
+          # 2. Run patch with quoted file path
+          patch -p1 < "$PATCH_FILE" || {
             echo "=== Patch failed! Rejection log (.rej files): ==="
             find . -name "*.rej" -exec cat {} +
             exit 1
