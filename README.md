@@ -5,9 +5,7 @@
 <p align="center">LegacyUI is a fork of UN1CA for the Galaxy A70</p>
 
 # Base:
-LegacyUI aims to bring in a pure OneUI implementation with UN1CA Core patches applied
-Unlike it's parent project and other forks, LegacyUI focuses on a pure reimplementation of the Galaxy A36 firmware on the Galaxy A70.
-It does not focus on bringing full features but a basic framework that allows the device to enjoy a higher API level while keeping many of it's proprietary functions working at most.
+Legacy_UN1CA is a custom rom ( i think )
 
 # Phones Supported:
 - Galaxy A70 International (SM-A705FN)
