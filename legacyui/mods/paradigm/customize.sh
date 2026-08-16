@@ -18,6 +18,7 @@ DELETE_FROM_WORK_DIR "system" "system/media/audio/ringtones"
 mkdir -p "$WORK_DIR/system/system/media/audio/notifications"
 mkdir -p "$WORK_DIR/system/system/media/audio/ringtones"
 if $TARGET_AUDIO_SUPPORT_ACH_RINGTONE; then
+    DECODE_APK "system" "system/priv-app/SecSoundPicker/SecSoundPicker.apk"
     SMALI_PATCH "system" "system/priv-app/SecSoundPicker/SecSoundPicker.apk" \
         "smali/com/samsung/android/secsoundpicker/util/PickerRune.smali" "replaceall" \
         "sput-boolean v2, Lcom/samsung/android/secsoundpicker/util/PickerRune;->SUPPORT_SAMSUNG_BRAND_SOUND_ONEUI_7:Z" \
