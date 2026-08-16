@@ -18,6 +18,8 @@ DELETE_FROM_WORK_DIR "system" "system/media/audio/ringtones"
 mkdir -p "$WORK_DIR/system/system/media/audio/notifications"
 mkdir -p "$WORK_DIR/system/system/media/audio/ringtones"
 if $TARGET_AUDIO_SUPPORT_ACH_RINGTONE; then
+    ADD_TO_WORK_DIR "$SOURCE" "system" \
+        "system/priv-app/SecSoundPicker/SecSoundPicker.apk" 0 0 644 "u:object_r:system_file:s0"
     DECODE_APK "system" "system/priv-app/SecSoundPicker/SecSoundPicker.apk"
     SMALI_PATCH "system" "system/priv-app/SecSoundPicker/SecSoundPicker.apk" \
         "smali/com/samsung/android/secsoundpicker/util/PickerRune.smali" "replaceall" \
@@ -72,9 +74,9 @@ else
     APPLY_PATCH "system" "system/priv-app/SecSettings/SecSettings.apk" \
         "$MODPATH/ead/SecSettings.apk/0001-Add-Adaptive-color-tone-feature.patch"
 fi
-APPLY_PATCH "system/priv-app/SettingsProvider/SettingsProvider.apk" \
+APPLY_PATCH "system" "system/priv-app/SettingsProvider/SettingsProvider.apk" \
     "$MODPATH/ead/SettingsProvider.apk/0001-Add-Adaptive-color-tone-feature.patch"
-APPLY_PATCH "system_ext" "priv-app/SystemUI/SystemUI.apk" \
+APPLY_PATCH "system_ext" "system_ext/priv-app/SystemUI/SystemUI.apk" \
     "$MODPATH/ead/SystemUI.apk/0001-Add-Adaptive-color-tone-toggle.patch"
 LOG_STEP_OUT
 
@@ -161,8 +163,8 @@ LOG "- Enabling Semantic search feature in /system/system/priv-app/SecSettingsIn
 EVAL "cp -a \"$MODPATH/semanticsearch/SecSettingsIntelligence.apk/res/raw/\"* \"$APKTOOL_DIR/system/priv-app/SecSettingsIntelligence/SecSettingsIntelligence.apk/res/raw\""
 SMALI_PATCH "system" "system/priv-app/SecSettingsIntelligence/SecSettingsIntelligence.apk" \
     "smali_classes2/com/samsung/android/settings/intelligence/Rune.smali" "replaceall" \
-    "const-string v1, \\\"\\\"" \
-    "const-string v1, \\\"400\\\"" \
+    "const-string v1, \"\"" \
+    "const-string v1, \"400\"" \
     > /dev/null
 SET_FLOATING_FEATURE_CONFIG "SEC_FLOATING_FEATURE_MSCH_SUPPORT_NLSEARCH" "TRUE"
 LOG_STEP_OUT
