@@ -21,7 +21,7 @@ if $TARGET_AUDIO_SUPPORT_ACH_RINGTONE; then
     ADD_TO_WORK_DIR "$SOURCE" "system" \
         "priv-app/SecSoundPicker/SecSoundPicker.apk" 0 0 644 "u:object_r:system_file:s0"
     DECODE_APK "system" "priv-app/SecSoundPicker/SecSoundPicker.apk"
-    EVAL "sed -i 's/sput-boolean v2, Lcom\/samsung\/android\/secsoundpicker\/util\/PickerRune;->SUPPORT_SAMSUNG_BRAND_SOUND_ONEUI_7:Z/sput-boolean v3, Lcom\/samsung\/android\/secsoundpicker\/util\/PickerRune;->SUPPORT_SAMSUNG_BRAND_SOUND_ONEUI_7:Z/g' \"$SOURCE/priv-app/SecSoundPicker/SecSoundPicker.apk/smali/com/samsung/android/secsoundpicker/util/PickerRune.smali\""
+    EVAL "sed -i 's/sput-boolean v2, Lcom\/samsung\/android\/secsoundpicker\/util\/PickerRune;->SUPPORT_SAMSUNG_BRAND_SOUND_ONEUI_7:Z/sput-boolean v3, Lcom\/samsung\/android\/secsoundpicker\/util\/PickerRune;->SUPPORT_SAMSUNG_BRAND_SOUND_ONEUI_7:Z/g' \"$SOURCE/system/priv-app/SecSoundPicker/SecSoundPicker.apk/smali/com/samsung/android/secsoundpicker/util/PickerRune.smali\""
     ADD_TO_WORK_DIR "$SOURCE" "system" "system/etc/ringtones_count_list.txt" 0 0 644 "u:object_r:system_file:s0"
     ADD_TO_WORK_DIR "$SOURCE" "system" "system/media/audio/notifications" 0 0 755 "u:object_r:system_file:s0"
     ADD_TO_WORK_DIR "$SOURCE" "system" "system/media/audio/ringtones" 0 0 755 "u:object_r:system_file:s0"
