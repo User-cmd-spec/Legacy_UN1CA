@@ -14,6 +14,9 @@ ADD_TO_WORK_DIR "$SOURCE" "system" \
     "system/hidden/INTERNAL_SDCARD/Music/Samsung/Over_the_Horizon.m4a" 0 0 644 "u:object_r:system_file:s0"
 DELETE_FROM_WORK_DIR "system" "system/media/audio/notifications"
 DELETE_FROM_WORK_DIR "system" "system/media/audio/ringtones"
+# Re-create deleted audio directories because i dont know any other way of fixing this lol
+mkdir -p "$WORK_DIR/system/system/media/audio/notifications"
+mkdir -p "$WORK_DIR/system/system/media/audio/ringtones"
 if $TARGET_AUDIO_SUPPORT_ACH_RINGTONE; then
     ADD_TO_WORK_DIR "$SOURCE" "system" "system/etc/ringtones_count_list.txt" 0 0 644 "u:object_r:system_file:s0"
     ADD_TO_WORK_DIR "$SOURCE" "system" "system/media/audio/notifications" 0 0 755 "u:object_r:system_file:s0"
