@@ -18,7 +18,7 @@ DELETE_FROM_WORK_DIR "system" "system/media/audio/ringtones"
 mkdir -p "$WORK_DIR/system/system/media/audio/notifications"
 mkdir -p "$WORK_DIR/system/system/media/audio/ringtones"
 if $TARGET_AUDIO_SUPPORT_ACH_RINGTONE; then
-SMALI_PATCH "system" "system/priv-app/SecSoundPick
+SMALI_PATCH "system" "system/priv-app/SecSoundPicker.apk"
     ADD_TO_WORK_DIR "$SOURCE" "system" "system/etc/ringtones_count_list.txt" 0 0 644 "u:object_r:system_file:s0"
     ADD_TO_WORK_DIR "$SOURCE" "system" "system/media/audio/notifications" 0 0 755 "u:object_r:system_file:s0"
     ADD_TO_WORK_DIR "$SOURCE" "system" "system/media/audio/ringtones" 0 0 755 "u:object_r:system_file:s0"
