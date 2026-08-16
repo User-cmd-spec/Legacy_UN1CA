@@ -28,7 +28,6 @@ ls -l /home/runner/work/Legacy_UN1CA/Legacy_UN1CA//out/fw/SM-A366B_EUX/system/sy
 ls -l /home/runner/work/Legacy_UN1CA/Legacy_UN1CA//out/fw/SM-A366B_EUX/system/system/etc
 ls -l /home/runner/work/Legacy_UN1CA/Legacy_UN1CA//out/fw/SM-A366B_EUX/system/system/etc/permissions
 ls -l /home/runner/work/Legacy_UN1CA/Legacy_UN1CA//out/fw/SM-A366B_EUX/system/system/priv-app
-ls -l /home/runner/work/Legacy_UN1CA/Legacy_UN1CA/out/work_dir
 LOG "Current WORK_DIR is: $WORK_DIR"
 echo "WORK_DIR = $WORK_DIR"
 echo "=====Start making rom.======"
@@ -89,7 +88,7 @@ if $BUILD_ROM; then
 
     echo -e "- Creating work dir..."
     bash "$SRC_DIR/scripts/internal/create_work_dir.sh"
-
+    ls -l /home/runner/work/Legacy_UN1CA/Legacy_UN1CA/out/work_dir
     echo -e "\n- Applying ROM patches..."
     bash "$SRC_DIR/scripts/internal/apply_modules.sh" "$SRC_DIR/legacyui/patches"
     [[ -d "$SRC_DIR/target/$TARGET_CODENAME/patches" ]] \
