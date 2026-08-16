@@ -18,6 +18,7 @@ DELETE_FROM_WORK_DIR "system" "system/media/audio/ringtones"
 mkdir -p "$WORK_DIR/system/system/media/audio/notifications"
 mkdir -p "$WORK_DIR/system/system/media/audio/ringtones"
 if $TARGET_AUDIO_SUPPORT_ACH_RINGTONE; then
+SMALI_PATCH "system" "system/priv-app/SecSoundPick
     ADD_TO_WORK_DIR "$SOURCE" "system" "system/etc/ringtones_count_list.txt" 0 0 644 "u:object_r:system_file:s0"
     ADD_TO_WORK_DIR "$SOURCE" "system" "system/media/audio/notifications" 0 0 755 "u:object_r:system_file:s0"
     ADD_TO_WORK_DIR "$SOURCE" "system" "system/media/audio/ringtones" 0 0 755 "u:object_r:system_file:s0"
@@ -40,8 +41,10 @@ else
 fi
 ADD_TO_WORK_DIR "$SOURCE" "system" \
     "system/media/audio/ui/Media_preview_Over_the_horizon.ogg" 0 0 644 "u:object_r:system_file:s0"
-APPLY_PATCH "system" "system/priv-app/SecSoundPicker/SecSoundPicker.apk" \
-    "$MODPATH/brandsound/SecSoundPicker.apk/0001-Enable-SUPPORT_SAMSUNG_BRAND_SOUND_ONEUI_7.patch"
+SMALI_PATCH "system" "system/priv-app/SecSoundPicker/SecSoundPicker.apk" \
+    "smali/com/samsung/android/secsoundpicker/util/PickerRune.smali" "replaceall" \
+    "sput-boolean v2, Lcom/samsung/android/secsoundpicker/util/PickerRune;->SUPPORT_SAMSUNG_BRAND_SOUND_ONEUI_7:Z" \
+    "sput-boolean v3, Lcom/samsung/android/secsoundpicker/util/PickerRune;->SUPPORT_SAMSUNG_BRAND_SOUND_ONEUI_7:Z"
 LOG_STEP_OUT
 
 # Adaptive colour tone
