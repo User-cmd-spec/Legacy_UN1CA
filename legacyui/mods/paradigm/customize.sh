@@ -52,7 +52,6 @@ LOG_STEP_OUT
 
 # Set AI Version to 20253 (latest)
 SET_FLOATING_FEATURE_CONFIG "SEC_FLOATING_FEATURE_COMMON_CONFIG_AI_VERSION" "20253"
-ADD_TO_WORK_DIR "$SOURCE" "system" "system/app/SketchBook/SketchBook.apk" 0 0 644 "u:object_r:system_file:s0"
 
 # Media Context Analyzer
 LOG_STEP_IN "- Adding Media Context Analyzer feature"
