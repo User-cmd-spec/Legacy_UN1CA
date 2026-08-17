@@ -89,6 +89,7 @@ if $BUILD_ROM; then
     echo -e "- Creating work dir..."
     bash "$SRC_DIR/scripts/internal/create_work_dir.sh"
     ls -l /home/runner/work/Legacy_UN1CA/Legacy_UN1CA/out/work_dir
+    ls -l /home/runner/work/Legacy_UN1CA/Legacy_UN1CA/out/work_dir/system
     echo -e "\n- Applying ROM patches..."
     bash "$SRC_DIR/scripts/internal/apply_modules.sh" "$SRC_DIR/legacyui/patches"
     [[ -d "$SRC_DIR/target/$TARGET_CODENAME/patches" ]] \
