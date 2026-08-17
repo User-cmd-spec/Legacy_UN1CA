@@ -58,7 +58,6 @@ system/priv-app/SingleTakeService
 # Photo Remaster Service
 SYSTEM_DEBLOAT+="
 system/etc/permissions/privapp-permissions-com.samsung.android.photoremasterservice.xml
-system/priv-app/PhotoRemasterService
 "
 
 # Apps debloat
