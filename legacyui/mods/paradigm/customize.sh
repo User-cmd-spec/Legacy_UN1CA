@@ -51,8 +51,6 @@ LOG_STEP_OUT
 # Adaptive colour tone
 LOG_STEP_IN "- Adding Adaptive colour tone feature"
 ADD_TO_WORK_DIR "$SOURCE" "system" \
-    "system/etc/permissions/privapp-permissions-com.samsung.android.sead.xml" 0 0 644 "u:object_r:system_file:s0"
-ADD_TO_WORK_DIR "$SOURCE" "system" \
     "system/priv-app/EnvironmentAdaptiveDisplay/EnvironmentAdaptiveDisplay.apk" 0 0 644 "u:object_r:system_file:s0"
 if $TARGET_LCD_SUPPORT_MDNIE_HW; then
     APPLY_PATCH "system" "system/framework/services.jar" \
