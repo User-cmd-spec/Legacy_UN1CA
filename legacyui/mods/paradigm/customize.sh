@@ -102,7 +102,7 @@ DOWNLOAD_FILE "$(GET_GALAXY_STORE_DOWNLOAD_URL "com.samsung.android.smartsuggest
 # on unsupported devices by triggering the downgrade check in PM. To avoid users updating to the
 # "non-AI" app, let's fake the versionCode so that it matches the latest available version.
 DECODE_APK "system/priv-app/SamsungSmartSuggestions/SamsungSmartSuggestions.apk"
-YAML_PATH="$APKTOOL_DIR/system/priv-app/SamsungSmartSuggestions/apktool.yml"
+YAML_PATH="$APKTOOL_DIR/system/priv-app/SamsungSmartSuggestions/SamsungSmartSuggestions.apk/apktool.yml"
 
 if [ -f "$YAML_PATH" ]; then
     LOG "- Patching versionCode in SamsungSmartSuggestions.apk"
