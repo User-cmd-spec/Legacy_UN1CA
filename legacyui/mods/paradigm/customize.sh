@@ -102,8 +102,16 @@ DOWNLOAD_FILE "$(GET_GALAXY_STORE_DOWNLOAD_URL "com.samsung.android.smartsuggest
 # on unsupported devices by triggering the downgrade check in PM. To avoid users updating to the
 # "non-AI" app, let's fake the versionCode so that it matches the latest available version.
 DECODE_APK "system" "system/priv-app/SamsungSmartSuggestions/SamsungSmartSuggestions.apk"
+YAML_PATH="$APKTOOL_DIR/system/priv-app/SamsungSmartSuggestions/SamsungSmartSuggestions/apktool.yml"
+
+if [ -f "$YAML_PATH" ]; then
+    EVAL "sed -i 's/710500000/711100100/g' \"$YAML_PATH\""
+else
+    LOG "[ERROR] Expected apktool.yml at $YAML_PATH was not found."
+    exit 1
+fi
 LOG "- Patching versionCode in SamsungSmartSuggestions.apk"
-EVAL "sed -i \"s/710500000/711100100/g\" \"$APKTOOL_DIR/system/priv-app/SamsungSmartSuggestions/SamsungSmartSuggestions.apk/apktool.yml\""
+EVAL "sed -i \"s/710500000/711100100/g\" \"$APKTOOL_DIR/system/priv-app/SamsungSmartSuggestions/SamsungSmartSuggestions/apktool.yml\""
 # ]
 SET_FLOATING_FEATURE_CONFIG "SEC_FLOATING_FEATURE_FRAMEWORK_SUPPORT_PERSONALIZED_DATA_CORE" "TRUE"
 LOG_STEP_OUT
