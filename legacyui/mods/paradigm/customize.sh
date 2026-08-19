@@ -101,17 +101,16 @@ DOWNLOAD_FILE "$(GET_GALAXY_STORE_DOWNLOAD_URL "com.samsung.android.smartsuggest
 # This is done on purpose: Samsung uses a lower version number to avoid installing this variant
 # on unsupported devices by triggering the downgrade check in PM. To avoid users updating to the
 # "non-AI" app, let's fake the versionCode so that it matches the latest available version.
-DECODE_APK "system" "system/priv-app/SamsungSmartSuggestions/SamsungSmartSuggestions.apk"
-YAML_PATH="$APKTOOL_DIR/system/priv-app/SamsungSmartSuggestions/SamsungSmartSuggestions/apktool.yml"
+DECODE_APK "system/priv-app/SamsungSmartSuggestions/SamsungSmartSuggestions.apk"
+YAML_PATH="$APKTOOL_DIR/system/priv-app/SamsungSmartSuggestions/apktool.yml"
 
 if [ -f "$YAML_PATH" ]; then
+    LOG "- Patching versionCode in SamsungSmartSuggestions.apk"
     EVAL "sed -i 's/710500000/711100100/g' \"$YAML_PATH\""
 else
     LOG "[ERROR] Expected apktool.yml at $YAML_PATH was not found."
     exit 1
 fi
-LOG "- Patching versionCode in SamsungSmartSuggestions.apk"
-EVAL "sed -i \"s/710500000/711100100/g\" \"$APKTOOL_DIR/system/priv-app/SamsungSmartSuggestions/SamsungSmartSuggestions/apktool.yml\""
 # ]
 SET_FLOATING_FEATURE_CONFIG "SEC_FLOATING_FEATURE_FRAMEWORK_SUPPORT_PERSONALIZED_DATA_CORE" "TRUE"
 LOG_STEP_OUT
@@ -137,10 +136,10 @@ ADD_TO_WORK_DIR "pa2qxxx" "system" \
     "system/priv-app/MediaSearch/MediaSearch.apk" 0 0 644 "u:object_r:system_file:s0"
 ADD_TO_WORK_DIR "pa2qxxx" "system" \
     "system/priv-app/SemanticSearchCore/SemanticSearchCore.apk" 0 0 644 "u:object_r:system_file:s0"
-DECODE_APK "system" "system/priv-app/SecSettingsIntelligence/SecSettingsIntelligence.apk"
+DECODE_APK "system/priv-app/SecSettingsIntelligence/SecSettingsIntelligence.apk"
 LOG "- Enabling Semantic search feature in /system/system/priv-app/SecSettingsIntelligence/SecSettingsIntelligence.apk"
-EVAL "cp -a \"$MODPATH/semanticsearch/SecSettingsIntelligence.apk/res/raw/\"* \"$APKTOOL_DIR/system/priv-app/SecSettingsIntelligence/SecSettingsIntelligence.apk/res/raw\""
-SMALI_PATCH "system" "system/priv-app/SecSettingsIntelligence/SecSettingsIntelligence.apk" \
+EVAL "cp -a \"$MODPATH/semanticsearch/SecSettingsIntelligence.apk/res/raw/\"* \"$APKTOOL_DIR/system/priv-app/SecSettingsIntelligence/res/raw\""
+SMALI_PATCH "system/priv-app/SecSettingsIntelligence/SecSettingsIntelligence.apk" \
     "smali_classes2/com/samsung/android/settings/intelligence/Rune.smali" "replaceall" \
     "const-string v1, \\\"\\\"" \
     "const-string v1, \\\"400\\\"" \
