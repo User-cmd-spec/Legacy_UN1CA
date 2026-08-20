@@ -149,7 +149,7 @@ else
     exit 1
 fi
 
-SMALI_PATCH "system/priv-app/SecSettingsIntelligence/SecSettingsIntelligence.apk" \
+SMALI_PATCH "system" "system/priv-app/SecSettingsIntelligence/SecSettingsIntelligence.apk" \
     "smali_classes2/com/samsung/android/settings/intelligence/Rune.smali" "replaceall" \
     "const-string v1, \\\"\\\"" \
     "const-string v1, \\\"400\\\"" \
