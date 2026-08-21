@@ -3,6 +3,9 @@ IFS=':' read -a SOURCE_EXTRA_FIRMWARES <<< "$SOURCE_FIRMWARE"
 MODEL=$(echo -n "${SOURCE_FIRMWARE[0]}" | cut -d "/" -f 1)
 REGION=$(echo -n "${SOURCE_FIRMWARE[0]}" | cut -d "/" -f 2)
 
+# Define central configs path based on your environment
+CONFIGS_DIR="$WORK_DIR/configs"
+
 echo "Setting up prism"
 
 echo "Debloating prism"
@@ -18,17 +21,17 @@ ln -s /system/prism $WORK_DIR/system/prism
 
 SET_METADATA "system" "system/prism" 0 0 755 "u:object_r:system_file:s0"
 
-# Intentionally break the source firmwares file contexts to make our life easier
+# Process prism file contexts and fs_config from CONFIGS_DIR instead of FW_DIR
 {
-    sed "s/^\/prism/\/system\/prism/g" "$FW_DIR/${MODEL}_${REGION}/file_context-prism"
-} >> "$FW_DIR/${MODEL}_${REGION}/file_context-system"
+    sed "s/^\/prism/\/system\/prism/g" "$CONFIGS_DIR/file_context-prism"
+} >> "$CONFIGS_DIR/file_context-system"
 
 {
-    sed "1d" "$FW_DIR/${MODEL}_${REGION}/fs_config-prism" | sed "s/^prism/system\/prism/g"
-} >> "$FW_DIR/${MODEL}_${REGION}/fs_config-system"
+    sed "1d" "$CONFIGS_DIR/fs_config-prism" | sed "s/^prism/system\/prism/g"
+} >> "$CONFIGS_DIR/file_context-system"
 
-cat "$FW_DIR/${MODEL}_${REGION}/fs_config-system" | grep -F "system/prism" >> "$WORK_DIR/configs/fs_config-system"
-cat "$FW_DIR/${MODEL}_${REGION}/file_context-system" | grep -F "system/prism" >> "$WORK_DIR/configs/file_context-system"
+# Extract matched lines into the target system config files
+grep -F "system/prism" "$CONFIGS_DIR/file_context-system" >> "$CONFIGS_DIR/fs_config-system"
 
 echo "Installing prism"
 cp -a --preserve=all "$FW_DIR/${MODEL}_${REGION}/prism" "$WORK_DIR/system/system"
@@ -43,17 +46,17 @@ ln -s /system/optics $WORK_DIR/system/optics
 
 SET_METADATA "system" "system/optics" 0 0 755 "u:object_r:system_file:s0"
 
-# Intentionally break the source firmwares file contexts to make our life easier
+# Process optics file contexts and fs_config from CONFIGS_DIR
 {
-    sed "s/^\/optics/\/system\/optics/g" "$FW_DIR/${MODEL}_${REGION}/file_context-optics"
-} >> "$FW_DIR/${MODEL}_${REGION}/file_context-system"
+    sed "s/^\/optics/\/system\/optics/g" "$CONFIGS_DIR/file_context-optics"
+} >> "$CONFIGS_DIR/file_context-system"
 
 {
-    sed "1d" "$FW_DIR/${MODEL}_${REGION}/fs_config-optics" | sed "s/^optics/system\/optics/g"
-} >> "$FW_DIR/${MODEL}_${REGION}/fs_config-system"
+    sed "1d" "$CONFIGS_DIR/fs_config-optics" | sed "s/^optics/system\/optics/g"
+} >> "$CONFIGS_DIR/file_context-system"
 
-cat "$FW_DIR/${MODEL}_${REGION}/fs_config-system" | grep -F "system/optics" >> "$WORK_DIR/configs/fs_config-system"
-cat "$FW_DIR/${MODEL}_${REGION}/file_context-system" | grep -F "system/optics" >> "$WORK_DIR/configs/file_context-system"
+# Extract matched lines into the target system config files
+grep -F "system/optics" "$CONFIGS_DIR/file_context-system" >> "$CONFIGS_DIR/fs_config-system"
 
 echo "Installing optics"
 cp -a --preserve=all "$FW_DIR/${MODEL}_${REGION}/optics" "$WORK_DIR/system/system"
