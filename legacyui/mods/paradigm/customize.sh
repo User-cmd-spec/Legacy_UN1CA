@@ -141,9 +141,9 @@ SET_FLOATING_FEATURE_CONFIG "SEC_FLOATING_FEATURE_MSCH_SUPPORT_NLSEARCH" "TRUE"
 LOG_STEP_OUT
 
 # Game Booster
-LOG "- Downloading latest Game Booster app"
-DOWNLOAD_FILE "$(GET_GALAXY_STORE_DOWNLOAD_URL "com.samsung.android.game.gametools")" \
-    "$WORK_DIR/system/system/priv-app/GameTools_Dream/GameTools_Dream.apk"
+LOG "- Adding Game Booster to WORK_DIR -"
+ADD_TO_WORK_DIR "pa2qxxx" "system" \
+    "system/priv-app/GameTools_Dream/GameTools_Dream.apk" 0 0 644 "u:object_r:system_file:s0"
 
 # Pet Detector in Galaxy AI
 LOG_STEP_IN "- Adding Pet Detector support in Galaxy AI features"
