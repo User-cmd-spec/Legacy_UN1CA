@@ -1,19 +1,17 @@
-export SOURCE="$PWD/out/fw/SM-A366B_EUX/system"
-export WORK_DIR="$PWD/out/fw/SM-A366B_EUX"
-mkdir -p "$PWD/out/fw/_home"
+export WORK_DIR="$PWD/out/work_dir"
+export SOURCE="$PWD/out/fw/SM-A366B_EUX"
 
 echo "Adding ARMv8 SDHMS"
-ADD_TO_WORK_DIR "$SOURCE" "system" "system/priv-app/SamsungDeviceHealthManagerService/SamsungDeviceHealthManagerService.apk" 0 0 644 "u:object_r:system_file:s0"
+ADD_TO_WORK_DIR "$SOURCE" "system" "priv-app/SamsungDeviceHealthManagerService/SamsungDeviceHealthManagerService.apk" 0 0 644 "u:object_r:system_file:s0"
 
 echo "Add SM6150 flags on SSRM"
 
 DECODE_APK "system/framework/ssrm.jar"
-FTP="
-system/framework/ssrm.jar/smali/com/android/server/ssrm/Feature.smali
-"
+FTP="system/framework/ssrm.jar/smali/com/android/server/ssrm/Feature.smali"
+
 for f in $FTP; do
-sed -i "s/\"dvfs_policy_default\"/\"dvfs_policy_sm6150_xx\"/g" "$APKTOOL_DIR/$f"
-sed -i "s/siop_a36xq_sm6475/siop_a70q_sm6150/g" "$APKTOOL_DIR/$f"
+    sed -i "s/\"dvfs_policy_default\"/\"dvfs_policy_sm6150_xx\"/g" "$APKTOOL_DIR/$f"
+    sed -i "s/siop_a36xq_sm6475/siop_a70q_sm6150/g" "$APKTOOL_DIR/$f"
 done
 
 echo "SDHMS was patched successfully!"
