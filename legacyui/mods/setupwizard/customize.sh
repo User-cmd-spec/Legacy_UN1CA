@@ -1,8 +1,10 @@
-DECODE_APK "system" "system/priv-app/SecSetupWizard_Global/SecSetupWizard_Global.apk"
+DECODE_APK "system/priv-app/SecSetupWizard_Global/SecSetupWizard_Global.apk"
 
-TARGET_APK_DIR="$APKTOOL_DIR/system/priv-app/SecSetupWizard_Global/SecSetupWizard_Global.apk"
-if [ ! -d "$TARGET_APK_DIR" ]; then
-    TARGET_APK_DIR="$APKTOOL_DIR/system/priv-app/SecSetupWizard_Global"
+TARGET_APK_DIR=$(find "$APKTOOL_DIR" -type d -name "SecSetupWizard_Global*" | head -n 1)
+
+if [ -z "$TARGET_APK_DIR" ] || [ ! -d "$TARGET_APK_DIR" ]; then
+    LOG "[ERROR] DECODE_APK failed. Extracted directory not found under $APKTOOL_DIR"
+    exit 1
 fi
 
 S2_F_FULL=$(find "$TARGET_APK_DIR" -type f -path "*/S2/f.smali" | head -n 1)
