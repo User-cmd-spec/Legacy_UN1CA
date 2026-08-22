@@ -1,14 +1,13 @@
-DECODE_APK "system" "system/priv-app/SecSetupWizard_Global/SecSetupWizard_Global.apk"
+DECODE_APK "system/system/priv-app/SecSetupWizard_Global/SecSetupWizard_Global.apk"
 
-TARGET_APK_DIR=$(find "$APKTOOL_DIR" -type d -name "SecSetupWizard_Global*" | head -n 1)
+TARGET_APK_DIR=$(find "$APKTOOL_DIR" -type d -path "*/SecSetupWizard_Global/SecSetupWizard_Global.apk" 2>/dev/null | head -n 1)
 
-if [ -z "$TARGET_APK_DIR" ] || [ ! -d "$TARGET_APK_DIR" ]; then
-    LOG "[ERROR] DECODE_APK failed. Extracted directory not found under $APKTOOL_DIR"
-    exit 1
+if [ -z "$TARGET_APK_DIR" ]; then
+    TARGET_APK_DIR=$(find "$APKTOOL_DIR" -type d -name "SecSetupWizard_Global*" 2>/dev/null | head -n 1)
 fi
 
-S2_F_FULL=$(find "$TARGET_APK_DIR" -type f -path "*/S2/f.smali" | head -n 1)
-SETUP_ACT_FULL=$(find "$TARGET_APK_DIR" -type f -path "*/com/sec/android/app/SecSetupWizard/SecSetupWizardActivity.smali" | head -n 1)
+S2_F_FULL=$(find "$TARGET_APK_DIR" -type f -path "*/S2/f.smali" 2>/dev/null | head -n 1)
+SETUP_ACT_FULL=$(find "$TARGET_APK_DIR" -type f -path "*/com/sec/android/app/SecSetupWizard/SecSetupWizardActivity.smali" 2>/dev/null | head -n 1)
 
 if [ -n "$S2_F_FULL" ] && [ -n "$SETUP_ACT_FULL" ]; then
     S2_F_REL=$(echo "$S2_F_FULL" | sed -n "s|.*${TARGET_APK_DIR}/||p")
