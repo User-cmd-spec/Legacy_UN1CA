@@ -1,4 +1,4 @@
-DECODE_APK "system/priv-app/SecSetupWizard_Global/SecSetupWizard_Global.apk"
+DECODE_APK "system" "system/priv-app/SecSetupWizard_Global/SecSetupWizard_Global.apk"
 
 TARGET_APK_DIR=$(find "$APKTOOL_DIR" -type d -name "SecSetupWizard_Global*" | head -n 1)
 
