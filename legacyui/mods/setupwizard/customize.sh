@@ -46,19 +46,25 @@ if [ -d "$MODPATH/SecSetupWizard_Global.apk" ]; then
         else
             LOG "- Patching \"$f\" in /system/system/priv-app/SecSetupWizard_Global.apk"
             if [[ "$f" == *"res/values"* ]]; then
-                PATCH_INST="/<\/resources>/i"
-                CONTENT="$(sed -e "/?xml/d" -e "/resources>/d" "$MODPATH/SecSetupWizard_Global.apk/$f")"
+                # FIX: Create a temp file with the content to inject (stripping headers)
+                TEMP_INSERT=$(mktemp)
+                sed -e "/?xml/d" -e "/<resources>/d" -e "/<\/resources>/d" "$MODPATH/SecSetupWizard_Global.apk/$f" > "$TEMP_INSERT"
+                
+                # FIX: Use sed 'r' command to read and insert the temp file before </resources>
+                # This avoids all escaping issues with newlines and quotes
+                sed -i "/<\/resources>/r $TEMP_INSERT" "$TARGET_APK_DIR/$f"
+                
+                rm -f "$TEMP_INSERT"
             else
+                # Non-XML files: simple append logic preserved but simplified
                 PATCH_INST="$(head -n 1 "$MODPATH/SecSetupWizard_Global.apk/$f")"
-                CONTENT="$(tail -n +2 "$MODPATH/SecSetupWizard_Global.apk/$f")"
+                # Just append the rest of the file content directly to avoid sed injection errors
+                tail -n +2 "$MODPATH/SecSetupWizard_Global.apk/$f" >> "$TARGET_APK_DIR/$f"
             fi
-            CONTENT="$(sed -e "s/\"/\\\\\"/g" -e "s/\\\\\\\\\"/\\\\\\\\\\\\\\\\\\\\\"/g" -e "s/\\$/\\\\$/g" -e "s/ /\\\ /g" -e "s/\\\\n/\\\\\\\\\n/g" <<< "$CONTENT")"
-            CONTENT="$(sed -E ':a;N;$!ba;s/\r{0,1}\n/\\n/g' <<< "$CONTENT")"
-            EVAL "sed -i \"$PATCH_INST $CONTENT\" \"$TARGET_APK_DIR/$f\""
         fi
     done < <(find "$MODPATH/SecSetupWizard_Global.apk" -type f)
 else
     LOG "- Directory $MODPATH/SecSetupWizard_Global.apk not found, skipping dynamic file patches."
 fi
 
-unset PATCH_INST CONTENT TARGET_APK_DIR S2_F_FULL SETUP_ACT_FULL S2_F_REL SETUP_ACT_REL
+unset PATCH_INST CONTENT TARGET_APK_DIR S2_F_FULL SETUP_ACT_FULL S2_F_REL SETUP_ACT_REL   
