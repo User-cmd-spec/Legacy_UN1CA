@@ -24,7 +24,8 @@ _MOVE_CONFIGS() {
     local TARGET_CONFIG_DIR="${CONFIGS_DIR:-$WORK_DIR/configs}"
     mkdir -p "$TARGET_CONFIG_DIR" 2>/dev/null
     for cfg in fs_config-* file_context-*; do
-        if [ -f "$cfg" ]; then
+        # Process only if it is a regular file and NOT a symlink
+        if [ -f "$cfg" ] && [ ! -L "$cfg" ]; then
             mv -f "$cfg" "$TARGET_CONFIG_DIR/" 2>/dev/null
             ln -sf "$TARGET_CONFIG_DIR/$cfg" "$cfg" 2>/dev/null
         fi
