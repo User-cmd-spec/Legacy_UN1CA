@@ -57,28 +57,47 @@ EXTRACT_CSC_PARTITIONS() {
         TAR_SOURCE=""
         TARGET_FILE=""
 
-        # Check all available tar files safely (CSC, AP, BL)
-        for archive in "$CSC_TAR" "$AP_TAR" "$BL_TAR"; do
-            [ -z "$archive" ] || [ ! -f "$archive" ] && continue
+        # If processing SOURCE_FIRMWARE, check its dedicated CSC tar archive first
+        if [ "$IS_SOURCE_FW" = true ] && [ -n "$CSC_TAR" ] && [ -f "$CSC_TAR" ]; then
             for ext in "${part}.img.lz4" "${part}.img.ext4.lz4"; do
-                if tar tf "$archive" "$ext" &>/dev/null; then
-                    TAR_SOURCE="$archive"
+                if tar tf "$CSC_TAR" "$ext" &>/dev/null; then
+                    TAR_SOURCE="$CSC_TAR"
                     TARGET_FILE="$ext"
-                    break 2
+                    break
                 fi
             done
-        done
+        fi
 
+        # Fallback check across AP and BL archives if not found in CSC tar
         if [ -z "$TAR_SOURCE" ]; then
-            echo "  - Warning: ${part} partition not found in any tar archive."
+            for archive in "$AP_TAR" "$BL_TAR"; do
+                [ -z "$archive" ] || [ ! -f "$archive" ] && continue
+                for ext in "${part}.img.lz4" "${part}.img.ext4.lz4"; do
+                    if tar tf "$archive" "$ext" &>/dev/null; then
+                        TAR_SOURCE="$archive"
+                        TARGET_FILE="$ext"
+                        break 2
+                    fi
+                done
+            done
+        fi
+
+        if [ -n "$TAR_SOURCE" ]; then
+            echo "  - Unpacking CSC partition: ${part} from $(basename "$TAR_SOURCE")"
+            tar xf "$TAR_SOURCE" "$TARGET_FILE" 2>/dev/null
+            lz4 -d -q --rm "$TARGET_FILE" "${part}.img.sparse" 2>/dev/null
+            simg2img "${part}.img.sparse" "${part}.img" 2>/dev/null
+            rm -f "${part}.img.sparse"
+        elif [ -f "${part}_a.img" ]; then
+            mv "${part}_a.img" "${part}.img"
+        elif [ -f "${part}.img" ]; then
+            : # Already present in directory
+        else
+            echo "  - ${part} image not found in TARs or extracted super."
             continue
         fi
 
-        echo "  - Unpacking CSC partition: ${part} from $(basename "$TAR_SOURCE")"
-        tar xf "$TAR_SOURCE" "$TARGET_FILE" 2>/dev/null
-        lz4 -d -q --rm "$TARGET_FILE" "${part}.img.sparse" 2>/dev/null
-        simg2img "${part}.img.sparse" "${part}.img" 2>/dev/null
-        rm -f "${part}.img.sparse"
+        [ ! -f "${part}.img" ] && continue
 
         if [ -d "tmp_out" ]; then
             if mountpoint -q "tmp_out"; then sudo umount "tmp_out" 2>/dev/null; fi
@@ -172,6 +191,11 @@ EXTRACT_OS_PARTITIONS() {
             local PARTITION="${img%$PARTITION_MASK}" PREFIX=""
             local FS_TYPE="$(GET_IMG_FS_TYPE "$img")"
 
+            # Defer prism and optics so EXTRACT_CSC_PARTITIONS processes them cleanly
+            if [ "$PARTITION" = "prism" ] || [ "$PARTITION" = "optics" ]; then
+                continue
+            fi
+
             if [ "$FS_TYPE" != "unknown" ]; then
                 echo "  - Unpacking filesystem content: ${PARTITION} ($FS_TYPE)"
             fi
@@ -245,14 +269,19 @@ EXTRACT_AVB_BINARIES() {
 }
 
 EXTRACT_ALL() {
-    BL_TAR=$(find "$ODIN_DIR/${MODEL}_${REGION}" -name "BL*" 2>/dev/null | head -n 1)
-    CSC_TAR=$(find "$ODIN_DIR/${MODEL}_${REGION}" -name "CSC*" -o -name "HOME_CSC*" 2>/dev/null | head -n 1)
-    AP_TAR=$(find "$ODIN_DIR/${MODEL}_${REGION}" -name "AP*" 2>/dev/null | head -n 1)
+    BL_TAR=$(find "$ODIN_DIR/${MODEL}_${REGION}" -maxdepth 1 -name "BL*" 2>/dev/null | head -n 1)
+    AP_TAR=$(find "$ODIN_DIR/${MODEL}_${REGION}" -maxdepth 1 -name "AP*" 2>/dev/null | head -n 1)
+    
+    # Strictly search for CSC_ files and ignore HOME_CSC
+    CSC_TAR=""
+    if [ "$IS_SOURCE_FW" = true ]; then
+        CSC_TAR=$(find "$ODIN_DIR/${MODEL}_${REGION}" -maxdepth 1 -name "CSC_*" 2>/dev/null | grep -v "HOME_CSC" | head -n 1)
+    fi
 
     mkdir -p "$FW_DIR/${MODEL}_${REGION}" 2>/dev/null
     EXTRACT_KERNEL_BINARIES
-    EXTRACT_CSC_PARTITIONS
     EXTRACT_OS_PARTITIONS
+    EXTRACT_CSC_PARTITIONS
     EXTRACT_AVB_BINARIES
 
     cp --preserve=all "$ODIN_DIR/${MODEL}_${REGION}/.downloaded" "$FW_DIR/${MODEL}_${REGION}/.extracted" 2>/dev/null || true
@@ -278,10 +307,18 @@ done
 
 mkdir -p "$FW_DIR" 2>/dev/null
 
+SOURCE_MODEL=$(echo -n "$SOURCE_FIRMWARE" | cut -d "/" -f 1)
+SOURCE_REGION=$(echo -n "$SOURCE_FIRMWARE" | cut -d "/" -f 2)
+
 for i in "${FIRMWARES[@]}"; do
     [ -z "$i" ] && continue
     MODEL=$(echo -n "$i" | cut -d "/" -f 1)
     REGION=$(echo -n "$i" | cut -d "/" -f 2)
+
+    IS_SOURCE_FW=false
+    if [ "$MODEL" = "$SOURCE_MODEL" ] && [ "$REGION" = "$SOURCE_REGION" ]; then
+        IS_SOURCE_FW=true
+    fi
 
     if [ -f "$FW_DIR/${MODEL}_${REGION}/.extracted" ]; then
         [ -z "$(GET_LATEST_FIRMWARE)" ] && continue

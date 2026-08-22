@@ -22,6 +22,7 @@ set -e
 
 A366_AP="https://ts.buzzheavier.com/d/b6h4mvgi4nwk?v=-2ISDgiIYAxKXFF0is7pTYhY8FfQjZgrxSJLjC7ultE57vY6yLHnwAo9tMFmnsZXH7GESQG75OESAeCEV0hJlUmCcSVYFpwMw5uKrUeCRhsiA6h-rQD1--_68blnt1SkORXo9UREM_przp8VdPSKz--yh6nghWjfO9pOZR5Ja5klhs75Od7G7rh8sWmt4FejspUUHT4DxUpHWaYLyn8hpc_4m0J3D27urk2bcmIJU1HR0X3vxwgQGdas1H44M1lZF54yk_0k39IJZ3rRdSldTFYOdMd0syVYrnYjjQvORHZs0Kjm7t15pPICk-Kcb2wyO7oUhKXmuY4Iw1Lcplzr1EHCdh-LH0TXMGtk"
 A366_BL="https://ts.buzzheavier.com/d/w3a582ba9obg?v=YAkAzAO76478sXsagjH6w5YBgy1oxpUpc9HJRFQFS8Dm6R78wKXOZU-LZWbuv7IXtUxlChmPPKbW1qqfCkbbJlfynZygSRm27M5i6VJmxXmftPtEsQ55SlP9JEYi7zqr-aqt8mugTmTZUArieAAnlckWue_WgMG-h1cAmeHiPAWlhTZPH-O9mYJ0fDpx5e6lXKrlE7OAvbOc0JdwvXjmepkgi1XiRy2K1_-LgOkf0clC_ES0Mps7MD5obOijY1lcJhSqV5oPp09OMhRdTot_QVIIAVbX2bJd06UCmFQPzekCXYb9a6LPxC-0oCgacFMCkpbvSa6vgA"
+A366_CSC="https://ts.buzzheavier.com/d/z9vn6crydz4t?v=rxFy469xAwlngaU9qRfY4n29Z9Zlcf-SHxNLBduy10yg2EGStG_vx8ePazro_-2oGConGmjOKEzrr9EjwW05ukZ2Vc3jBvBb9RKXVmItAAMCwSGWB3LoeQDvGar3yVaiPtct1LL65bwPZ1GpWFoDDkEKXUXryRPcHZuboGIRjSCLi9iA-uvTyNBKX8zSFlSu_9Puqazk0y_68MBMwrfK-UxM9ThLWM57yXMxzNpE_t6XIkc6q5NLxH-Ez-2PozJoB3iK0xs0TE-4zCPsvUcHYPy8d10GOE05fTVewbea4X90IZk8Yg"
 
 A705FN_AP="https://ts.buzzheavier.com/d/5gjjethkgp83?v=_qPDxWUPnUjRqXI6jWk381X4-6DKYBbddp5j89Y5G0eMolDvKPW3S0oMjpFpMi6_2D1TBQFR9yzCwECcs3ZH7R79Y0oi1SfAaXtO8LKMeKW8cFAJM-PIttbWxe-lI_xCDCueJ5VP3xfvQfJmideLQmtmdvwimU2xwo0geVQYs0GvkeN52qLYiyB13oB877GVh7q7tnb1NwoRGvpPqMm9nk7Gg-pcIlpbQI8ycc1_C3SXls2A0ybtPteyjFmIZSXhdPJ49dAj37-Eth3rHiqHOrTnkGXr-sUjz2-5Cxg4l5BJZe_Lvlc-T5v6stpGUAOlRbwJ27n2r3smgfraY8rqy9Avfg"
 A705FN_BL="https://ts.buzzheavier.com/d/5gjjethkgp83?v=_qPDxWUPnUjRqXI6jWk381X4-6DKYBbddp5j89Y5G0eMolDvKPW3S0oMjpFpMi6_2D1TBQFR9yzCwECcs3ZH7R79Y0oi1SfAaXtO8LKMeKW8cFAJM-PIttbWxe-lI_xCDCueJ5VP3xfvQfJmideLQmtmdvwimU2xwo0geVQYs0GvkeN52qLYiyB13oB877GVh7q7tnb1NwoRGvpPqMm9nk7Gg-pcIlpbQI8ycc1_C3SXls2A0ybtPteyjFmIZSXhdPJ49dAj37-Eth3rHiqHOrTnkGXr-sUjz2-5Cxg4l5BJZe_Lvlc-T5v6stpGUAOlRbwJ27n2r3smgfraY8rqy9Avfg"
@@ -42,11 +43,13 @@ DOWNLOAD_FIRMWARE()
 
     local AP_URL=""
     local BL_URL=""
+    local CSC_URL=""
 
     case "$MODEL" in
         *A366*|*a366*)
             AP_URL="$A366_AP"
             BL_URL="$A366_BL"
+            CSC_URL="$A366_CSC"
             ;;
         *A705*|*a705*|*s911*|*S911*)
             AP_URL="$A705FN_AP"
@@ -64,10 +67,18 @@ DOWNLOAD_FIRMWARE()
     echo "- Downloading BL .tar.md5 for $MODEL..."
     curl -L --retry 5 --retry-delay 5 -o "BL_${MODEL}_firmware.tar.md5" "$BL_URL"
 
+    if [ -n "$CSC_URL" ] && { [ "$IS_SOURCE_FW" = true ] || [[ "$MODEL" =~ (A366|a366) ]]; }; then
+        echo "- Downloading CSC .tar.md5 for $MODEL..."
+        curl -L --retry 5 --retry-delay 5 -o "CSC_${MODEL}_firmware.tar.md5" "$CSC_URL"
+    fi
+
     touch "$ODIN_DIR/${MODEL}_${REGION}/.downloaded"
     {
         echo -n "AP_${MODEL}/"
         echo -n "BL_${MODEL}"
+        if [ -f "CSC_${MODEL}_firmware.tar.md5" ]; then
+            echo -n "/CSC_${MODEL}"
+        fi
     } >> "$ODIN_DIR/${MODEL}_${REGION}/.downloaded"
 
     echo ""
@@ -75,7 +86,6 @@ DOWNLOAD_FIRMWARE()
 }
 
 FIRMWARES=("SM-A366B/EUX" "SM-A705FN/EUX")
-
 
 [ -n "$SOURCE_FIRMWARE" ] && FIRMWARES+=("$SOURCE_FIRMWARE")
 
@@ -113,10 +123,22 @@ done
 
 mkdir -p "$ODIN_DIR"
 
+SOURCE_MODEL=""
+SOURCE_REGION=""
+if [ -n "$SOURCE_FIRMWARE" ]; then
+    SOURCE_MODEL=$(echo -n "$SOURCE_FIRMWARE" | cut -d "/" -f 1)
+    SOURCE_REGION=$(echo -n "$SOURCE_FIRMWARE" | cut -d "/" -f 2)
+fi
+
 for i in "${FIRMWARES[@]}"
 do
     MODEL=$(echo -n "$i" | cut -d "/" -f 1)
     REGION=$(echo -n "$i" | cut -d "/" -f 2)
+
+    IS_SOURCE_FW=false
+    if [ -n "$SOURCE_MODEL" ] && [ "$MODEL" = "$SOURCE_MODEL" ] && [ "$REGION" = "$SOURCE_REGION" ]; then
+        IS_SOURCE_FW=true
+    fi
 
     if [ -f "$ODIN_DIR/${MODEL}_${REGION}/.downloaded" ]; then
         if $FORCE; then
