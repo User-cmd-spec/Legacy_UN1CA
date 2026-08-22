@@ -46,18 +46,21 @@ if [ -d "$MODPATH/SecSetupWizard_Global.apk" ]; then
         else
             LOG "- Patching \"$f\" in /system/system/priv-app/SecSetupWizard_Global.apk"
             if [[ "$f" == *"res/values"* ]]; then
-                # FIX: Use a temp file to avoid sed escaping errors
+                # FIX: Create a temporary file to hold the content to inject
                 TEMP_INSERT=$(mktemp)
-                # Strip XML headers from source content
+                
+                # Strip XML headers/footers from the source content
                 sed -e "/?xml/d" -e "/<resources>/d" -e "/<\/resources>/d" "$MODPATH/SecSetupWizard_Global.apk/$f" > "$TEMP_INSERT"
                 
-                # FIX: Insert temp file content before </resources> using 'r' command
+                # FIX: Use sed 'r' command to read and insert the temp file before </resources>
                 # This avoids 'exit code 2' caused by newlines/quotes in variables
                 sed -i "/<\/resources>/r $TEMP_INSERT" "$TARGET_APK_DIR/$f"
                 
+                # Cleanup
                 rm -f "$TEMP_INSERT"
             else
-                # Non-XML: Append content directly to avoid sed injection issues
+                # Non-XML files: Append content directly to avoid sed injection issues
+                # Preserves the original intent without complex escaping
                 tail -n +2 "$MODPATH/SecSetupWizard_Global.apk/$f" >> "$TARGET_APK_DIR/$f"
             fi
         fi
