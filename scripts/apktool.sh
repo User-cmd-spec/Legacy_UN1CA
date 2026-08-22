@@ -234,7 +234,9 @@ DO_RECOMPILE()
 
     mkdir -p "$APKTOOL_DIR$IN_DIR/build/apk"
     cp -a --preserve=all "$APKTOOL_DIR$IN_DIR/original/META-INF" "$APKTOOL_DIR$IN_DIR/build/apk/META-INF"
-    apktool -q b -p "$FRAMEWORK_DIR" -srp "$APKTOOL_DIR$IN_DIR"
+    
+    # Removed -q flag so AAPT2 prints specific compilation errors if linking fails
+    apktool b -p "$FRAMEWORK_DIR" -srp "$APKTOOL_DIR$IN_DIR"
     [[ -f "$APKTOOL_DIR$IN_DIR/classes.dex" ]] && rm "$APKTOOL_DIR$IN_DIR/"*.dex
 
     echo "Zipaligning $IN_DIR"
@@ -256,13 +258,31 @@ DO_RECOMPILE()
 }
 
 FRAMEWORK_DIR="$APKTOOL_DIR/bin/fw"
+mkdir -p "$FRAMEWORK_DIR"
 
-if [ ! -d "$FRAMEWORK_DIR" ]; then
+# Ensure 1.apk exists in the framework cache directory
+if [ ! -f "$FRAMEWORK_DIR/1.apk" ]; then
+    FW_PATH=""
     if [ -f "$WORK_DIR/system/system/framework/framework-res.apk" ]; then
-        echo "Set up apktool env"
-        apktool -q if -p "$FRAMEWORK_DIR" "$WORK_DIR/system/system/framework/framework-res.apk"
+        FW_PATH="$WORK_DIR/system/system/framework/framework-res.apk"
+    elif [ -f "$WORK_DIR/system/framework/framework-res.apk" ]; then
+        FW_PATH="$WORK_DIR/system/framework/framework-res.apk"
+    elif [ -f "${SRC_DIR:-$PWD}/prebuilts/samsung/a366b/framework-res.apk" ]; then
+        FW_PATH="${SRC_DIR:-$PWD}/prebuilts/samsung/a366b/framework-res.apk"
+    fi
+
+    if [ -n "$FW_PATH" ]; then
+        echo "Setting up apktool env using: $FW_PATH"
+        apktool -q if -p "$FRAMEWORK_DIR" "$FW_PATH"
+
+        # Also import twframework-res if present alongside framework-res
+        TW_FW="${FW_PATH%/*}/twframework-res.apk"
+        if [ -f "$TW_FW" ]; then
+            echo "Setting up twframework-res env using: $TW_FW"
+            apktool -q if -p "$FRAMEWORK_DIR" "$TW_FW"
+        fi
     else
-        echo "Please set up your work_dir first."
+        echo "Error: Could not locate framework-res.apk in work_dir or prebuilts."
         exit 1
     fi
 fi
