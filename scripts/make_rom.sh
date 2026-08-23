@@ -92,6 +92,7 @@ if $BUILD_ROM; then
     "$GITHUB_WORKSPACE/debug-artifacts/file_context-system"
     cp "$WORK_DIR/configs/fs_config-system" \
     "$GITHUB_WORKSPACE/debug-artifacts/fs_config-system"
+    awk '$2 == "0" {print "FOUND BAD LINE: " $0}' /home/runner/work/Legacy_UN1CA/Legacy_UN1CA/out/work_dir/configs/file_context-system
     echo -e "\n- Applying ROM patches..."
     bash "$SRC_DIR/scripts/internal/apply_modules.sh" "$SRC_DIR/legacyui/patches"
     [[ -d "$SRC_DIR/target/$TARGET_CODENAME/patches" ]] \
