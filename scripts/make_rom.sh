@@ -23,11 +23,7 @@ ls -l /home/runner/work/Legacy_UN1CA/Legacy_UN1CA//out/fw/SM-A366B_EUX
 ls -l /home/runner/work/Legacy_UN1CA/Legacy_UN1CA//out/fwSM-A705FN_EUX
 ls -l /home/runner/work/Legacy_UN1CA/Legacy_UN1CA//out/odin
 ls -l /home/runner/work/Legacy_UN1CA/Legacy_UN1CA//out/fw/SM-A366B_EUX/system
-ls -l /home/runner/work/Legacy_UN1CA/Legacy_UN1CA//out/fw/SM-A366B_EUX/system/etc
 ls -l /home/runner/work/Legacy_UN1CA/Legacy_UN1CA//out/fw/SM-A366B_EUX/system/system
-ls -l /home/runner/work/Legacy_UN1CA/Legacy_UN1CA//out/fw/SM-A366B_EUX/system/system/etc
-ls -l /home/runner/work/Legacy_UN1CA/Legacy_UN1CA//out/fw/SM-A366B_EUX/system/system/etc/permissions
-ls -l /home/runner/work/Legacy_UN1CA/Legacy_UN1CA//out/fw/SM-A366B_EUX/system/system/priv-app
 LOG "Current WORK_DIR is: $WORK_DIR"
 echo "WORK_DIR = $WORK_DIR"
 echo "=====Start making rom.======"
