@@ -88,7 +88,7 @@ if $BUILD_ROM; then
     ls -l /home/runner/work/Legacy_UN1CA/Legacy_UN1CA/out/work_dir/configs
     ls -l /home/runner/work/Legacy_UN1CA/Legacy_UN1CA/out/work_dir/system
     echo "Dumping lines 7830 to 7840 to find the syntax error:"
-    sed -n '7830,7840p' /home/runner/work/Legacy_UN1CA/Legacy_UN1CA/out/work_dir/configs/file_context-system
+    cp "$WORK_DIR/configs/file_context-system" "debug_file_contexts.txt"
     echo -e "\n- Applying ROM patches..."
     bash "$SRC_DIR/scripts/internal/apply_modules.sh" "$SRC_DIR/legacyui/patches"
     [[ -d "$SRC_DIR/target/$TARGET_CODENAME/patches" ]] \
