@@ -122,6 +122,14 @@ if $BUILD_ROM; then
     echo "=== 4. VERIFYING CLEANED FILE ==="
     wc -l $FILE
 
+    sudo apt-get update && sudo apt-get install -y policycoreutils
+    
+    FC_DIR="/home/runner/work/Legacy_UN1CA/Legacy_UN1CA/out/work_dir/configs"
+    
+    sefcontext_compile -o "$FC_DIR/file_context-system.bin" "$FC_DIR/file_context-system"
+    
+    mv "$FC_DIR/file_context-system.bin" "$FC_DIR/file_context-system"
+
     echo -e "\n- Recompiling APKs/JARs..."
     while read -r i; do
         bash "$SRC_DIR/scripts/apktool.sh" b "$i"
