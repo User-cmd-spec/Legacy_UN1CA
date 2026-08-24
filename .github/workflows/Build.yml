@@ -89,10 +89,10 @@ jobs:
 
           ./scripts/make_rom.sh -f
 
-      - name: Downgrade PCRE2 Runtime
+      - name: Force Install PCRE2 10.40
         run: |
-          sudo apt-get update
-          sudo apt-get install --allow-downgrades -y libpcre2-8-0=10.40*
+          wget http://archive.ubuntu.com/ubuntu/pool/main/p/pcre2/libpcre2-8-0_10.40-1ubuntu2_amd64.deb
+          sudo dpkg --force-all -i libpcre2-8-0_10.40-1ubuntu2_amd64.deb
 
       - name: Upload debug configs
         if: always()
