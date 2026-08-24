@@ -102,6 +102,28 @@ if $BUILD_ROM; then
 
     echo -e "\n- Applying ROM mods..."
     bash "$SRC_DIR/scripts/internal/apply_modules.sh" "$SRC_DIR/legacyui/mods"
+    FILE="/home/runner/work/Legacy_UN1CA/Legacy_UN1CA/out/work_dir/configs/file_context-system"
+    
+    echo "=== 1. CHECKING FILE TYPE ==="
+    file $FILE
+    
+    echo "=== 2. SEARCHING FOR THE BROKEN LINE ==="
+    # This searches for any line containing a standalone '0' and prints it with its line number
+    grep -n -w "0" $FILE || echo "No standalone 0 found by grep"
+    
+    echo "=== 3. SANITIZING THE FILE ==="
+    # If the file is plain text but contains carriage returns or fs_config errors, this strips them:
+    # 1. dos2unix removes \r carriage returns
+    # 2. awk removes any line where the 2nd column is '0'
+    sudo apt-get install -y dos2unix
+    dos2unix $FILE
+    awk '$2 != "0" && NF > 1' $FILE > ${FILE}.clean
+    
+    # Overwrite the broken file with the clean one
+    mv ${FILE}.clean $FILE
+    
+    echo "=== 4. VERIFYING CLEANED FILE ==="
+    wc -l $FILE
 
     echo -e "\n- Recompiling APKs/JARs..."
     while read -r i; do
