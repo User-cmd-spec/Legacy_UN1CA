@@ -80,11 +80,16 @@ jobs:
           source ./buildenv.sh ${{ matrix.target }}
           ./scripts/extract_fw.sh
 
-      - name: Replace Prebuilt sefcontext_compile
+      - name: Build and Install PCRE2 10.40 from Source
         run: |
-         sudo apt-get update
-         sudo apt-get install -y selinux-utils
-         find . -name "sefcontext_compile" -type f -exec cp -fv /usr/sbin/sefcontext_compile {} +
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential
+          git clone --branch pcre2-10.40 --depth 1 https://github.com/PCRE2Project/pcre2 /tmp/pcre2
+          cd /tmp/pcre2
+          cmake -B build -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_INSTALL_LIBDIR=lib/x86_64-linux-gnu -DPCRE2_BUILD_PCRE2_8=ON
+          cmake --build build --parallel
+          sudo cmake --install build
+          sudo ldconfig
 
       - name: Build ROM
         run: |
