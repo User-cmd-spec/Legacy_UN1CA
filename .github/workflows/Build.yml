@@ -80,10 +80,11 @@ jobs:
           source ./buildenv.sh ${{ matrix.target }}
           ./scripts/extract_fw.sh
 
-      - name: Force Install PCRE2 10.40 from Launchpad
+      - name: Replace Prebuilt sefcontext_compile
         run: |
-         wget https://launchpad.net/ubuntu/+archive/primary/+files/libpcre2-8-0_10.40-1ubuntu2_amd64.deb
-         sudo dpkg --force-all -i libpcre2-8-0_10.40-1ubuntu2_amd64.deb
+         sudo apt-get update
+         sudo apt-get install -y selinux-utils
+         find . -name "sefcontext_compile" -type f -exec cp -fv /usr/sbin/sefcontext_compile {} +
 
       - name: Build ROM
         run: |
