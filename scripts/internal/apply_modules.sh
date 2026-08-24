@@ -18,8 +18,6 @@
 
 # shellcheck disable=SC1091,SC2001
 
-set -e
-set -x
 set -Ee
 
 #[
