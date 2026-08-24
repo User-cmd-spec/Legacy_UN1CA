@@ -80,6 +80,11 @@ jobs:
           source ./buildenv.sh ${{ matrix.target }}
           ./scripts/extract_fw.sh
 
+      - name: Force Install PCRE2 10.40
+        run: |
+          wget http://archive.ubuntu.com/ubuntu/pool/main/p/pcre2/libpcre2-8-0_10.40-1ubuntu2_amd64.deb
+          sudo dpkg --force-all -i libpcre2-8-0_10.40-1ubuntu2_amd64.deb
+
       - name: Build ROM
         run: |
           source ./buildenv.sh ${{ matrix.target }}
@@ -88,11 +93,6 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/debug-artifacts"
 
           ./scripts/make_rom.sh -f
-
-      - name: Force Install PCRE2 10.40
-        run: |
-          wget http://archive.ubuntu.com/ubuntu/pool/main/p/pcre2/libpcre2-8-0_10.40-1ubuntu2_amd64.deb
-          sudo dpkg --force-all -i libpcre2-8-0_10.40-1ubuntu2_amd64.deb
 
       - name: Upload debug configs
         if: always()
