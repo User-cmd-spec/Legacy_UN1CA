@@ -89,6 +89,11 @@ jobs:
 
           ./scripts/make_rom.sh -f
 
+      - name: Downgrade PCRE2 Runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install --allow-downgrades -y libpcre2-8-0=10.40*
+
       - name: Upload debug configs
         if: always()
         uses: actions/upload-artifact@v4
