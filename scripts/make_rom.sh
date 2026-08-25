@@ -103,34 +103,12 @@ if $BUILD_ROM; then
 
     echo -e "\n- Applying ROM mods..."
     bash "$SRC_DIR/scripts/internal/apply_modules.sh" "$SRC_DIR/legacyui/mods"
-    FILE="/home/runner/work/Legacy_UN1CA/Legacy_UN1CA/out/work_dir/configs/file_context-system"
     
-    echo "=== 1. CHECKING FILE TYPE ==="
-    file $FILE
-    
-    echo "=== 2. SEARCHING FOR THE BROKEN LINE ==="
-    # This searches for any line containing a standalone '0' and prints it with its line number
-    grep -n -w "0" $FILE || echo "No standalone 0 found by grep"
-    
-    echo "=== 3. SANITIZING THE FILE ==="
-    sudo apt-get install -y dos2unix
-    dos2unix $FILE
-    awk '$2 != "0" && NF > 1' $FILE > ${FILE}.clean
-    
-    # Overwrite the broken file with the clean one
-    mv ${FILE}.clean $FILE
-    
-    echo "=== 4. VERIFYING CLEANED FILE ==="
-    wc -l $FILE
-
-    sudo apt-get update && sudo apt-get install -y policycoreutils
-    
-    FC_DIR="/home/runner/work/Legacy_UN1CA/Legacy_UN1CA/out/work_dir/configs"
-    
-    sefcontext_compile -o "$FC_DIR/file_context-system.bin" "$FC_DIR/file_context-system"
-    
-    mv "$FC_DIR/file_context-system.bin" "$FC_DIR/file_context-system"
-
+    sudo apt-get update
+    sudo apt-get install -y policycoreutils
+    setfiles -F Legacy_UN1CA/out/work_dir/configs/file_context-system Legacy_UN1CA/out/work_dir/configs/file_context-system.bin
+    file Legacy_UN1CA/out/work_dir/configs/file_context-system.bin  
+         
     echo -e "\n- Recompiling APKs/JARs..."
     while read -r i; do
         bash "$SRC_DIR/scripts/apktool.sh" b "$i"
