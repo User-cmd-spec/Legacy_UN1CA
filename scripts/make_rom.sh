@@ -15,7 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-sudo apt-get install --allow-downgrades libpcre2-8-0=10.40*
 pwd
 ls -l /home/runner/work/Legacy_UN1CA/Legacy_UN1CA/
 ls -l /home/runner/work/Legacy_UN1CA/Legacy_UN1CA/out
