@@ -18,7 +18,7 @@ jobs:
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           submodules: 'recursive'
 
@@ -57,20 +57,41 @@ jobs:
           node-version: '24'
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
           cache: 'gradle'
-   
-      - name: Upgrade Protobuf Compiler
+
+      - name: Setup Protoc Wrapper for Ubuntu 22.04
         run: |
-         PB_URL="https://github.com/protocolbuffers/protobuf/releases/download/v25.1/protoc-25.1-linux-x86_64.zip"
-         curl -LO $PB_URL
-         sudo unzip -o protoc-25.1-linux-x86_64.zip -d /usr/local bin/protoc
-          rm protoc-25.1-linux-x86_64.zip
+          sudo rm -f /usr/local/bin/protoc
+          sudo bash -c 'cat << "EOF" > /usr/local/bin/protoc
+          #!/bin/bash
+          exec /usr/bin/protoc --experimental_allow_proto3_optional "$@"
+          EOF'
+          sudo chmod +x /usr/local/bin/protoc
           protoc --version
-      
+
+      - name: Build and Install PCRE2 10.40 from Source
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential
+          git clone --branch pcre2-10.40 --depth 1 https://github.com/PCRE2Project/pcre2 /tmp/pcre2
+          cd /tmp/pcre2
+          cmake -B build \
+            -DCMAKE_INSTALL_PREFIX=/usr \
+            -DCMAKE_INSTALL_LIBDIR=lib/x86_64-linux-gnu \
+            -DPCRE2_BUILD_PCRE2_8=ON \
+            -DBUILD_SHARED_LIBS=ON \
+            -DPCRE2_BUILD_SHARED_LIBS=ON
+          cmake --build build --parallel
+          sudo cmake --install build
+          sudo ldconfig
+
+      - name: Clean Previous Build Cache
+        run: |
+          rm -rf external/android-tools/build
 
       - name: Build dependencies
         run: |
@@ -88,23 +109,6 @@ jobs:
         run: |
           source ./buildenv.sh ${{ matrix.target }}
           ./scripts/extract_fw.sh
-
-
-      - name: Build and Install PCRE2 10.40 from Source
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake build-essential
-          git clone --branch pcre2-10.40 --depth 1 https://github.com/PCRE2Project/pcre2 /tmp/pcre2
-          cd /tmp/pcre2
-          cmake -B build \
-          -DCMAKE_INSTALL_PREFIX=/usr \
-          -DCMAKE_INSTALL_LIBDIR=lib/x86_64-linux-gnu \
-          -DPCRE2_BUILD_PCRE2_8=ON \
-          -DBUILD_SHARED_LIBS=ON \
-          -DPCRE2_BUILD_SHARED_LIBS=ON
-           cmake --build build --parallel
-           sudo cmake --install build
-           sudo ldconfig
 
       - name: Build ROM
         run: |
@@ -124,7 +128,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-      - name: "Upload flasheable zip to Github Artifact"
+      - name: Upload flasheable zip to Github Artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
