@@ -105,7 +105,7 @@ if $BUILD_ROM; then
     
     sudo apt-get update
     sudo apt-get install -y policycoreutils
-    setfiles -F Legacy_UN1CA/out/work_dir/configs/file_context-system Legacy_UN1CA/out/work_dir/configs/file_context-system.bin
+    setfiles -F /home/runner/work/Legacy_UN1CA/Legacy_UN1CA/out/work_dir/configs/file_context-system /home/runner/work/Legacy_UN1CALegacy_UN1CA/out/work_dir/configs/file_context-system.bin
     file /home/runner/work/Legacy_UN1CA/Legacy_UN1CA/out/work_dir/configs/file_context-system.bin
 
          
