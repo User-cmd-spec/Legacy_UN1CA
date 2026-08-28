@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     strategy:
       fail-fast: false
@@ -62,14 +62,6 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
           cache: 'gradle'
-
-      - name: Upgrade Protobuf Compiler
-        run: |
-          PB_URL="https://github.com/protocolbuffers/protobuf/releases/download/v25.1/protoc-25.1-linux-x86_64.zip"
-          curl -LO $PB_URL
-          sudo unzip -o protoc-25.1-linux-x86_64.zip -d /usr/local bin/protoc
-          rm protoc-25.1-linux-x86_64.zip
-          protoc --version
 
       - name: Build dependencies
         run: |
