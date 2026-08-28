@@ -113,6 +113,16 @@ if $BUILD_ROM; then
 else
     echo -e "- Nothing to do in work dir.\n"
 fi
+    echo "::group::Compressing work_dir"
+    tar -I 'zstd -3' -cf work_dir.tar.zst out/work_dir
+    echo "::endgroup::"
+
+    echo "Uploading to Buzzheavier..."
+    RESPONSE=$(curl -s -T work_dir.tar.zst https://buzzheavier.com/work_dir.tar.zst)
+
+    echo "=================================================="
+    echo "BUZZHEAVIER DOWNLOAD LINK: $RESPONSE"
+    echo "=================================================="
 
 if $BUILD_ZIP; then
     echo "- Building ROM zip..."
