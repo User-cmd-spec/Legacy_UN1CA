@@ -111,19 +111,19 @@ jobs:
         run: |
           tar -I 'zstd -3' -cf work_dir.tar.zst out/work_dir
 
-      - name: Upload work_dir to Gofile
-        if: always()
-        id: gofile_upload
-        uses: ahnafnafee/action-upload-gofile@v3.0.0
-        with:
-          file: ./work_dir.tar.zst
-
-      - name: Print Gofile Link
+      - name: Upload to Gofile via API
         if: always()
         run: |
-          echo "=================================================="
-          echo " GOFILE DOWNLOAD LINK: ${{ steps.gofile_upload.outputs.url }}"
-          echo "=================================================="
+          # Get best upload server
+          SERVER=$(curl -s https://api.gofile.io/servers | jq -r '.data.servers[0].name')
+    
+          # Upload file
+          RESPONSE=$(curl -F "file=@./work_dir.tar.zst" "https://${SERVER}.gofile.io/contents/uploadfile")
+    
+          # Extract page link
+          DOWNLOAD_PAGE=$(echo "$RESPONSE" | jq -r '.data.downloadPage')
+          echo "Download URL: $DOWNLOAD_PAGE"
+
 
       - name: Upload debug configs
         if: always()
