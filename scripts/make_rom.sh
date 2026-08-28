@@ -106,7 +106,7 @@ if $BUILD_ROM; then
     sudo apt-get update
     sudo apt-get install -y policycoreutils
     setfiles -F Legacy_UN1CA/out/work_dir/configs/file_context-system Legacy_UN1CA/out/work_dir/configs/file_context-system.bin
-    file Legacy_UN1CA/out/work_dir/configs/file_context-system.bin  
+    file "$WORK_DIR/configs/file_context-system.bin"
          
     echo -e "\n- Recompiling APKs/JARs..."
     while read -r i; do
