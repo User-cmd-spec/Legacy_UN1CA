@@ -20,18 +20,24 @@
 
 set -Eeuo pipefail
 
-# [
+# ==============================================================================
+# CONFIGURATION
+# ==============================================================================
+SYSTEM_URL="https://ts.buzzheavier.com/d/g8glro0c5f2z?v=xmfiw94-QT3fZTk4ThAE9wZpmb6Y4WTL8rW4aIn2DoNDVfmzTaw9zzPPdSKLp0QoV9yAOYP6u59pXjxi-nMCFj8Wd5KsH-7uXmQ1qYOw0bZOgkhwS4wMDFwEQ4vdwPO91XcMmghOWQ"
+PREBUILT_DIR="${SRC_DIR:-/home/runner/work/Legacy_UN1CA/Legacy_UN1CA}/target/${TARGET_CODENAME:-a70q}/prebuilt_images"
+# ==============================================================================
+
 GET_PROP()
 {
     local PROP="$1"
     local FILE="$2"
 
     if [ ! -f "$FILE" ]; then
-        echo "File not found: $FILE"
-        exit 1
+        echo "Unknown"
+        return 0
     fi
 
-    grep "^$PROP=" "$FILE" | cut -d "=" -f2-
+    grep "^$PROP=" "$FILE" | cut -d "=" -f2- || echo "Unknown"
 }
 
 PRINT_HEADER()
@@ -41,14 +47,17 @@ PRINT_HEADER()
     local MINOR
     local PATCH
 
-    ONEUI_VERSION="$(GET_PROP "ro.build.version.oneui" "$WORK_DIR/system/system/build.prop")"
-    MAJOR=$(echo "scale=0; $ONEUI_VERSION / 10000" | bc -l)
-    MINOR=$(echo "scale=0; $ONEUI_VERSION % 10000 / 100" | bc -l)
-    PATCH=$(echo "scale=0; $ONEUI_VERSION % 100" | bc -l)
-    if [[ "$PATCH" != "0" ]]; then
-        ONEUI_VERSION="$MAJOR.$MINOR.$PATCH"
-    else
-        ONEUI_VERSION="$MAJOR.$MINOR"
+    ONEUI_VERSION="$(GET_PROP "ro.build.version.oneui" "$BUILD_PROP_FILE")"
+    
+    if [[ "$ONEUI_VERSION" != "Unknown" && -n "$ONEUI_VERSION" ]]; then
+        MAJOR=$(echo "scale=0; $ONEUI_VERSION / 10000" | bc -l)
+        MINOR=$(echo "scale=0; $ONEUI_VERSION % 10000 / 100" | bc -l)
+        PATCH=$(echo "scale=0; $ONEUI_VERSION % 100" | bc -l)
+        if [[ "$PATCH" != "0" ]]; then
+            ONEUI_VERSION="$MAJOR.$MINOR.$PATCH"
+        else
+            ONEUI_VERSION="$MAJOR.$MINOR"
+        fi
     fi
 
     echo    'ui_print(" ");'
@@ -60,47 +69,29 @@ PRINT_HEADER()
     echo    'ui_print("UN1CA base by salvo_giangri et al.,");'
     echo    'ui_print("****************************************");'
     echo -n 'ui_print("'
-    echo -n "Base from: $(GET_PROP "ro.product.system.model" "$WORK_DIR/system/system/build.prop")"
+    echo -n "Base from: $(GET_PROP "ro.product.system.model" "$BUILD_PROP_FILE")"
     echo    '");'
     echo -n 'ui_print("'
-    echo -n "Base version: $(GET_PROP "ro.system.build.version.incremental" "$WORK_DIR/system/system/build.prop")"
+    echo -n "Base version: $(GET_PROP "ro.system.build.version.incremental" "$BUILD_PROP_FILE")"
     echo    '");'
     echo -n 'ui_print("'
     echo -n "One UI version: $ONEUI_VERSION"
     echo    '");'
     echo -n 'ui_print("'
-    echo -n "Fingerprint: $(GET_PROP "ro.system.build.fingerprint" "$WORK_DIR/system/system/build.prop")"
+    echo -n "Fingerprint: $(GET_PROP "ro.system.build.fingerprint" "$BUILD_PROP_FILE")"
     echo    '");'
     echo    'ui_print("****************************************");'
-}
-
-GET_SPARSE_IMG_SIZE()
-{
-    local FILE_INFO
-    local BLOCKS
-    local BLOCK_SIZE
-
-    FILE_INFO=$(file -b "$1")
-    if [ -z "$FILE_INFO" ] || [[ "$FILE_INFO" != "Android"* ]]; then
-        exit 1
-    fi
-
-    BLOCKS=$(echo "$FILE_INFO" | grep -o "[[:digit:]]*" | sed "3p;d")
-    BLOCK_SIZE=$(echo "$FILE_INFO" | grep -o "[[:digit:]]*" | sed "4p;d")
-
-    echo "$BLOCKS * $BLOCK_SIZE" | bc -l
 }
 
 GENERATE_UPDATER_SCRIPT()
 {
     local SCRIPT_FILE="$TMP_DIR/META-INF/com/google/android/updater-script"
-    local PARTITION_COUNT=0
     local HAS_BOOT=false
+    local HAS_DTBO=false
     local HAS_SYSTEM=false
     local HAS_VENDOR=false
     local HAS_PRODUCT=false
 
-# Normally not needed for a hardcoded install but just to be sure
     [ -f "$TMP_DIR/boot.img" ] && HAS_BOOT=true
     [ -f "$TMP_DIR/dtbo.img" ] && HAS_DTBO=true
     [ -f "$TMP_DIR/system.new.dat.br" ] && HAS_SYSTEM=true
@@ -169,7 +160,7 @@ GENERATE_BUILD_INFO()
         echo "device=$TARGET_CODENAME"
         echo "version=$ROM_VERSION"
         echo "timestamp=$ROM_BUILD_TIMESTAMP"
-        echo "security_patch_version=$(GET_PROP "ro.build.version.security_patch" "$WORK_DIR/system/system/build.prop")"
+        echo "security_patch_version=$(GET_PROP "ro.build.version.security_patch" "$BUILD_PROP_FILE")"
     } >> "$BUILD_INFO_FILE"
 
     true
@@ -177,7 +168,6 @@ GENERATE_BUILD_INFO()
 
 FILE_NAME="LegacyUI_${ROM_VERSION}_$(date +%Y%m%d)_${TARGET_CODENAME}"
 CERT_NAME="aosp_testkey"
-# ]
 
 echo "Set up tmp dir"
 mkdir -p "$TMP_DIR"
@@ -185,22 +175,26 @@ mkdir -p "$TMP_DIR"
 mkdir -p "$TMP_DIR/META-INF/com/google/android"
 cp --preserve=all "$SRC_DIR/prebuilts/bootable/deprecated-ota/updater" "$TMP_DIR/META-INF/com/google/android/update-binary"
 
-while read -r i; do
-    PARTITION=$(basename "$i")
-    [[ "$PARTITION" == "configs" ]] && continue
-    [ -f "$TMP_DIR/$PARTITION.img" ] && rm -f "$TMP_DIR/$PARTITION.img"
-    [ -f "$WORK_DIR/$PARTITION.img" ] && rm -f "$WORK_DIR/$PARTITION.img"
+echo "Downloading prebuilt system.img"
+curl -L -o "$TMP_DIR/system.img" "$SYSTEM_URL"
 
-    echo "Building $PARTITION.img"
-    bash "$SRC_DIR/scripts/build_fs_image.sh" "$TARGET_OS_FILE_SYSTEM+sparse" "$WORK_DIR/$PARTITION" \
-        "$WORK_DIR/configs/file_context-$PARTITION" "$WORK_DIR/configs/fs_config-$PARTITION"
-    mv "$WORK_DIR/$PARTITION.img" "$TMP_DIR/$PARTITION.img"
-done <<< "$(find "$WORK_DIR" -mindepth 1 -maxdepth 1 -type d)"
+# Extract build.prop for header/build info metadata
+BUILD_PROP_FILE="${WORK_DIR:-/home/runner/work}/system/system/build.prop"
+if [ ! -f "$BUILD_PROP_FILE" ]; then
+    mkdir -p "$TMP_DIR/prop_temp"
+    7z e "$TMP_DIR/system.img" "system/build.prop" "system/system/build.prop" "build.prop" -o"$TMP_DIR/prop_temp" -y > /dev/null 2>&1 || true
+    if [ -f "$TMP_DIR/prop_temp/build.prop" ]; then
+        BUILD_PROP_FILE="$TMP_DIR/prop_temp/build.prop"
+    fi
+fi
 
-echo "Copying prebuilt images"
-lz4 -c -d $SRC_DIR/target/$TARGET_CODENAME/prebuilt_images/product.img.lz4 >> $TMP_DIR/product.img
-lz4 -c -d -m $SRC_DIR/target/$TARGET_CODENAME/prebuilt_images/vendor/vendor.img.* >> $TMP_DIR/vendor.img
+echo "Copying raw product.img"
+cp "$PREBUILT_DIR/product.img" "$TMP_DIR/product.img"
 
+echo "Decompressing split vendor lz4 files into vendor.img"
+cat "$PREBUILT_DIR/vendor/"* | lz4 -d > "$TMP_DIR/vendor.img"
+
+# Convert system, vendor, product .img files to dat.br block sparse images
 while read -r i; do
     PARTITION="$(basename "$i" | sed "s/.img//g")"
 
@@ -219,9 +213,9 @@ while read -r i; do
         && rm "$TMP_DIR/$PARTITION.new.dat"
 done <<< "$(find "$TMP_DIR" -mindepth 1 -maxdepth 1 -type f -name "*.img")"
 
-echo "Copying prebuilt kernel"
-lz4 -d $SRC_DIR/target/$TARGET_CODENAME/prebuilt_images/boot.img.lz4 $TMP_DIR/boot.img
-lz4 -d $SRC_DIR/target/$TARGET_CODENAME/prebuilt_images/dtbo.img.lz4 $TMP_DIR/dtbo.img
+echo "Copying prebuilt kernel & dtbo"
+cp "$PREBUILT_DIR/boot.img" "$TMP_DIR/boot.img"
+cp "$PREBUILT_DIR/dtbo.img" "$TMP_DIR/dtbo.img"
 
 echo "Generating updater-script"
 GENERATE_UPDATER_SCRIPT
