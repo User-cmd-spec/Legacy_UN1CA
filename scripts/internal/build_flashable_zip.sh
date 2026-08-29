@@ -188,8 +188,8 @@ if [ ! -f "$BUILD_PROP_FILE" ]; then
     fi
 fi
 
-echo "Copying raw product.img"
-cp "$PREBUILT_DIR/product.img" "$TMP_DIR/product.img"
+echo "Decompressing product.img.lz4"
+lz4 -d "$PREBUILT_DIR/product.img.lz4" "$TMP_DIR/product.img"
 
 echo "Decompressing split vendor lz4 files into vendor.img"
 cat "$PREBUILT_DIR/vendor/"* | lz4 -d > "$TMP_DIR/vendor.img"
@@ -213,9 +213,9 @@ while read -r i; do
         && rm "$TMP_DIR/$PARTITION.new.dat"
 done <<< "$(find "$TMP_DIR" -mindepth 1 -maxdepth 1 -type f -name "*.img")"
 
-echo "Copying prebuilt kernel & dtbo"
-cp "$PREBUILT_DIR/boot.img" "$TMP_DIR/boot.img"
-cp "$PREBUILT_DIR/dtbo.img" "$TMP_DIR/dtbo.img"
+echo "Decompressing boot.img.lz4 & dtbo.img.lz4"
+lz4 -d "$PREBUILT_DIR/boot.img.lz4" "$TMP_DIR/boot.img"
+lz4 -d "$PREBUILT_DIR/dtbo.img.lz4" "$TMP_DIR/dtbo.img"
 
 echo "Generating updater-script"
 GENERATE_UPDATER_SCRIPT
