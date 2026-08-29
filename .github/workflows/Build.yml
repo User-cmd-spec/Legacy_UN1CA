@@ -93,6 +93,11 @@ jobs:
         run: |
           rm -rf external/android-tools/build
 
+      - name: Install dependencies
+        run: |
+         sudo apt-get update
+         sudo apt-get install -y bc
+
       - name: Build dependencies
         run: |
           source ./buildenv.sh ${{ matrix.target }}
