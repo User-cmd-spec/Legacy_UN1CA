@@ -228,11 +228,25 @@ echo "Creating zip"
 cd "$TMP_DIR" ; zip -rq ../rom.zip ./* ; cd - &> /dev/null
 
 echo "Signing zip"
-[ -f "$OUT_DIR/$FILE_NAME-sign.zip" ] && rm -f "$OUT_DIR/$FILE_NAME-sign.zip"
+FINAL_SIGNED_ZIP="$OUT_DIR/$FILE_NAME-sign.zip"
+[ -f "$FINAL_SIGNED_ZIP" ] && rm -f "$FINAL_SIGNED_ZIP"
 signapk -w \
     "$SRC_DIR/security/$CERT_NAME.x509.pem" "$SRC_DIR/security/$CERT_NAME.pk8" \
-    "$OUT_DIR/rom.zip" "$OUT_DIR/$FILE_NAME-sign.zip" \
+    "$OUT_DIR/rom.zip" "$FINAL_SIGNED_ZIP" \
     && rm -f "$OUT_DIR/rom.zip"
+
+echo "Uploading $FILE_NAME-sign.zip to Gofile..."
+SERVER=$(curl -s https://api.gofile.io/servers | jq -r '.data.servers[0].name')
+
+if [ -n "$SERVER" ] && [ "$SERVER" != "null" ]; then
+    RESPONSE=$(curl -s -F "file=@$FINAL_SIGNED_ZIP" "https://${SERVER}.gofile.io/contents/uploadfile")
+    DOWNLOAD_PAGE=$(echo "$RESPONSE" | jq -r '.data.downloadPage')
+    echo "========================================"
+    echo "Download URL: $DOWNLOAD_PAGE"
+    echo "========================================"
+else
+    echo "Error: Could not retrieve a valid Gofile server."
+fi
 
 echo "Deleting tmp dir"
 rm -rf "$TMP_DIR"
