@@ -1,0 +1,4 @@
+id=odm-fix
+name=Fix odm to stop kernel panic.
+author=Anon
+description=Same as name.
