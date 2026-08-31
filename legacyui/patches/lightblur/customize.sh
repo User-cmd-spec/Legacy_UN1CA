@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Define full path to sec_floating_feature.xml
-TARGET_FILE="$WORK_DIR/system/system/etc/sec_floating_feature.xml"
+# Define full path to floating_feature.xml
+TARGET_FILE="$WORK_DIR/system/system/etc/floating_feature.xml"
 
 if [ ! -f "$TARGET_FILE" ]; then
   echo "! Error: Target file $TARGET_FILE not found."
