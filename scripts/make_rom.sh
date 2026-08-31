@@ -114,6 +114,15 @@ else
     echo -e "- Nothing to do in work dir.\n"
 fi
 
+sed -E '/^[^[:space:]]+[[:space:]]+[0-9]+[[:space:]]+[0-9]+[[:space:]]+[0-9]+[[:space:]]+capabilities=/d' \
+"$WORK_DIR/configs/file_context-system" \
+> "$WORK_DIR/configs/file_context-system.tmp" && \
+mv "$WORK_DIR/configs/file_context-system.tmp" \
+"$WORK_DIR/configs/file_context-system"
+
+grep -nE '^[^[:space:]]+[[:space:]]+[0-9]+[[:space:]]+[0-9]+[[:space:]]+[0-9]+[[:space:]]+capabilities=' \
+"$WORK_DIR/configs/file_context-system"
+
 if $BUILD_ZIP; then
     echo "- Building ROM zip..."
     bash "$SRC_DIR/scripts/internal/build_flashable_zip.sh"
