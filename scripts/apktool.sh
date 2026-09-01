@@ -1,349 +1,230 @@
 #!/usr/bin/env bash
-#
-# Copyright (C) 2023 Salvo Giangreco
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
+# Copyright (c) 2025 Salvo Giangreco
+# SPDX-License-Identifier: GPL-3.0-or-later
 
-set -eu
-shopt -s nullglob
+# [
+source "$SRC_DIR/scripts/utils/build_utils.sh" || exit 1
+
+FRAMEWORK_DIR="$TOOLS_DIR/apktool/framework"
+FRAMEWORK_TAG="$(GET_PROP "system" "ro.build.version.incremental")"
+
+FORCE=false
+JOBS="1"
+PARTITION=""
+FILE=""
+
+HEAP_SIZE=""
+THREAD_COUNT=""
+INPUT_FILE=""
+OUTPUT_PATH=""
+
+BUILD()
+{
+    if [ ! -d "$OUTPUT_PATH" ]; then
+        LOGE "Folder not found: ${OUTPUT_PATH//$SRC_DIR\//}"
+        exit 1
+    fi
+
+    LOG "- Building ${INPUT_FILE//$WORK_DIR/}"
+
+    # Copy original META-INF
+    mkdir -p "$OUTPUT_PATH/build/apk"
+    cp -a "$OUTPUT_PATH/original/META-INF" "$OUTPUT_PATH/build/apk/META-INF"
+
+    # Build APK with --shorten-resource-paths (https://developer.android.com/tools/aapt2#optimize_options)
+    EVAL "apktool -JXmx${HEAP_SIZE}m b -j \"$THREAD_COUNT\" -p \"$FRAMEWORK_DIR\" -srp \"$OUTPUT_PATH\"" || exit 1
+
+    local FILE_NAME
+    FILE_NAME="$(basename "$INPUT_FILE")"
+
+    if [[ "$INPUT_FILE" == *".apk" ]]; then
+        local CERT_PREFIX="aosp"
+        $ROM_IS_OFFICIAL && CERT_PREFIX="unica"
+
+        LOG "- Signing ${INPUT_FILE//$WORK_DIR/}"
+        EVAL "signapk \"$SRC_DIR/security/${CERT_PREFIX}_platform.x509.pem\" \"$SRC_DIR/security/${CERT_PREFIX}_platform.pk8\" \"$OUTPUT_PATH/dist/$FILE_NAME\" \"$OUTPUT_PATH/dist/temp.apk\"" || exit 1
+        mv -f "$OUTPUT_PATH/dist/temp.apk" "$OUTPUT_PATH/dist/$FILE_NAME"
+    else
+        LOG "- Zipaligning ${INPUT_FILE//$WORK_DIR/}"
+        EVAL "zipalign -p 4 \"$OUTPUT_PATH/dist/$FILE_NAME\" \"$OUTPUT_PATH/dist/temp\"" || exit 1
+        mv -f "$OUTPUT_PATH/dist/temp" "$OUTPUT_PATH/dist/$FILE_NAME"
+    fi
+
+    mkdir -p "$(dirname "$INPUT_FILE")"
+    mv -f "$OUTPUT_PATH/dist/$FILE_NAME" "$INPUT_FILE"
+    rm -rf "$OUTPUT_PATH/build" && rm -rf "$OUTPUT_PATH/dist"
+
+    if [ -d "${INPUT_FILE%/*}/oat" ]; then
+        DELETE_FROM_WORK_DIR "$PARTITION" "${FILE%/*}/oat"
+    fi
+    if [ -f "${INPUT_FILE%/*}/$FILE_NAME.prof" ]; then
+        DELETE_FROM_WORK_DIR "$PARTITION" "${FILE%/*}/$FILE_NAME.prof"
+    fi
+    if [ -f "${INPUT_FILE%/*}/$FILE_NAME.bprof" ]; then
+        DELETE_FROM_WORK_DIR "$PARTITION" "${FILE%/*}/$FILE_NAME.bprof"
+    fi
+}
+
+DECODE()
+{
+    if [ ! -f "$INPUT_FILE" ]; then
+        LOGE "File not found: ${INPUT_FILE//$WORK_DIR/}"
+        exit 1
+    elif [ -d "$OUTPUT_PATH" ]; then
+        if $FORCE; then
+            rm -rf "$OUTPUT_PATH"
+        else
+            LOGE "Output directory already exists (${OUTPUT_PATH//$SRC_DIR\//}). Use --force flag if you want to overwrite it."
+            exit 1
+        fi
+    fi
+
+    if [[ "$(READ_BYTES_AT "$INPUT_FILE" "0" "4")" != "04034b50" ]]; then
+        LOGE "File not valid: ${INPUT_FILE//$WORK_DIR/}"
+        exit 1
+    fi
+
+    LOG "- Decoding ${INPUT_FILE//$WORK_DIR/}"
+
+    # Decode APK with --no-debug-info, which will disassemble DEX file with the following flags:
+    # - Disabled synthetic accessors comments
+    # - Disabled debug info
+    # - Use .locals directive instead of the .registers one
+    # - Use a sequential numbering scheme for labels
+    EVAL "apktool -JXmx${HEAP_SIZE}m d --no-debug-info -j \"$THREAD_COUNT\" -o \"$OUTPUT_PATH\" -p \"$FRAMEWORK_DIR\" -t \"$FRAMEWORK_TAG\" \"$INPUT_FILE\"" || exit 1
+}
+
+PREPARE_SCRIPT()
+{
+    local MEM_TOTAL_MB
+    local MAX_THREADS
+
+    if [[ "$#" == 0 ]]; then
+        PRINT_USAGE
+        exit 1
+    fi
+
+    ACTION="$1"
+    if [[ "$ACTION" != "decode" ]] && [[ "$ACTION" != "d" ]] && \
+            [[ "$ACTION" != "build" ]] && [[ "$ACTION" != "b" ]]; then
+        PRINT_USAGE
+        exit 1
+    fi
+
+    shift
+
+    while [[ "$1" == "-"* ]]; do
+        if [[ "$1" == "--force" ]] || [[ "$1" == "-f" ]]; then
+            FORCE=true
+        elif [[ "$1" == "--jobs" ]] || [[ "$1" == "-j" ]]; then
+            shift; JOBS="$1"
+            if ! [[ "$JOBS" =~ ^[1-9][0-9]*$ ]]; then
+                LOGE "Jobs number not valid: $JOBS"
+                exit 1
+            fi
+        else
+            LOGE "Unknown option: $1"
+            exit 1
+        fi
+
+        shift
+    done
+
+    MEM_TOTAL_MB="$(awk '/MemTotal/ { print int($2 / 1024) }' /proc/meminfo)"
+
+    if [ "$JOBS" -gt "1" ]; then
+        # Split 3/4 of total system memory between the requested instances
+        HEAP_SIZE="$(bc -l <<< "scale=0; (($MEM_TOTAL_MB * 3) / 4) / $JOBS")"
+        [ "$HEAP_SIZE" -lt "1024" ] && HEAP_SIZE="1024"
+
+        MAX_THREADS="$(bc -l <<< "scale=0; $(nproc) / $JOBS")"
+        [ "$MAX_THREADS" -lt "1" ] && MAX_THREADS="1"
+        [ -n "$GITHUB_ACTIONS" ] && MAX_THREADS="1"
+
+        # Do not use more threads than half the heap in GB
+        THREAD_COUNT="$(bc -l <<< "scale=0; $HEAP_SIZE / (1024 * 2)")"
+        [ "$THREAD_COUNT" -gt "$MAX_THREADS" ] && THREAD_COUNT="$MAX_THREADS"
+        [ "$THREAD_COUNT" -lt "1" ] && THREAD_COUNT="1"
+    else
+        # https://github.com/iBotPeaches/Apktool/blob/main/scripts/linux/apktool#L61
+        HEAP_SIZE="1024"
+
+        MAX_THREADS="$(nproc)"
+        [ -n "$GITHUB_ACTIONS" ] && MAX_THREADS="1"
+
+        # Do not use more threads than half the total system memory in GB
+        THREAD_COUNT="$(bc -l <<< "scale=0; $MEM_TOTAL_MB / (1024 * 2)")"
+        [ "$THREAD_COUNT" -gt "$MAX_THREADS" ] && THREAD_COUNT="$MAX_THREADS"
+        [ "$THREAD_COUNT" -lt "1" ] && THREAD_COUNT="1"
+    fi
+
+    PARTITION="$1"
+    if [ ! "$PARTITION" ]; then
+        PRINT_USAGE
+        exit 1
+    elif ! IS_VALID_PARTITION_NAME "$PARTITION"; then
+        LOGE "\"$PARTITION\" is not a valid partition name"
+        exit 1
+    fi
+
+    shift
+
+    if [ ! "$1" ]; then
+        PRINT_USAGE
+        exit 1
+    fi
+
+    FILE="$1"
+    while [[ "${FILE:0:1}" == "/" ]]; do
+        FILE="${FILE:1}"
+    done
+
+    local FILE_PATH="$WORK_DIR"
+    case "$PARTITION" in
+        "system_ext")
+            if $TARGET_OS_BUILD_SYSTEM_EXT_PARTITION; then
+                FILE_PATH+="/system_ext"
+            else
+                FILE_PATH+="/system/system/system_ext"
+            fi
+            ;;
+        *)
+            FILE_PATH+="/$PARTITION"
+            ;;
+    esac
+    FILE_PATH+="/$FILE"
+
+    INPUT_FILE="$FILE_PATH"
+    OUTPUT_PATH="$APKTOOL_DIR/$PARTITION/${FILE//system\//}"
+}
 
 PRINT_USAGE()
 {
-    echo "Usage: apktool d[ecode]/b[uild] <apk> (<apk>...)"
-    echo "- APK/JAR path MUST not be full and match an existing file inside work_dir"
-    echo "- Output files will be stored in ($APKTOOL_DIR)"
-    echo "- Recompiled apk will be copied back to its original directory"
+    echo "Usage: apktool d[ecode]/b[uild] [options] <partition> <file>" >&2
+    echo " -f, --force : Force delete output directory" >&2
+    echo " -j, --jobs : Specify the number of concurrent instances" >&2
 }
+# ]
 
-REMOVE_FROM_WORK_DIR()
-{
-    local FILE_PATH="$1"
+ACTION=""
 
-    if [ -e "$FILE_PATH" ]; then
-        local FILE
-        local PARTITION
-        FILE="$(echo -n "$FILE_PATH" | sed "s|^$WORK_DIR/||")"
-        PARTITION="$(echo -n "$FILE" | cut -d "/" -f 1)"
+PREPARE_SCRIPT "$@"
 
-        echo "Debloating /$FILE"
-        rm -rf "$FILE_PATH"
-
-        FILE="$(echo -n "$FILE" | sed 's/\//\\\//g')"
-        sed -i "/$FILE/d" "$WORK_DIR/configs/fs_config-$PARTITION"
-
-        FILE="$(echo -n "$FILE" | sed 's/\./\\./g')"
-        sed -i "/$FILE/d" "$WORK_DIR/configs/file_context-$PARTITION"
-    fi
-}
-
-DEX_TO_API()
-{
-    local DEX_FILE="$1"
-    local API
-    local DEX_VERSION
-
-    DEX_VERSION="$(xxd -p -l "1" --skip "6" "$DEX_FILE")"
-
-    case "$DEX_VERSION" in
-        "35")
-            API="23"
-            ;;
-        "37")
-            API="25"
-            ;;
-        "38")
-            API="27"
-            ;;
-        "39")
-            API="29"
-            ;;
-        "40")
-            API="34"
-            ;;
-        "41")
-            API="36"
-            ;;
-        *)
-            echo "Unknown DEX format version ($DEX_VERSION). Aborting"
-            exit 1
-            ;;
-    esac
-
-    echo "$API"
-}
-
-DO_DECOMPILE()
-{
-    local OUT_DIR="$1"
-    local APK_PATH
-    local DEX_API_LEVEL
-    local SMALI_OUT
-
-    [[ "$OUT_DIR" != "/"* ]] && OUT_DIR="/$OUT_DIR"
-
-    case "$OUT_DIR" in
-        "/system/system_ext/"*)
-            if ${TARGET_HAS_SYSTEM_EXT:-false}; then
-                APK_PATH="$WORK_DIR$(echo "$OUT_DIR" | sed 's/\/system\/system_ext/\/system_ext/')"
-            else
-                APK_PATH="$WORK_DIR/system$OUT_DIR"
-            fi
-            OUT_DIR="$(echo "$OUT_DIR" | sed 's/\/system\/system_ext/\/system_ext/')"
-            ;;
-        "/system_ext/"*)
-            if ${TARGET_HAS_SYSTEM_EXT:-false}; then
-                APK_PATH="$WORK_DIR$OUT_DIR"
-            else
-                APK_PATH="$WORK_DIR/system/system$OUT_DIR"
-            fi
-            ;;
-        "/system/system/"*)
-            APK_PATH="$WORK_DIR$OUT_DIR"
-            OUT_DIR="$(echo "$OUT_DIR" | sed 's/\/system\/system/\/system/')"
-            ;;
-        "/system/"*)
-            APK_PATH="$WORK_DIR/system$OUT_DIR"
-            ;;
-        "/odm/"* | "/product/"* | "/system_dlkm/"* | "/vendor/"* | "/vendor_dlkm/"*)
-            APK_PATH="$WORK_DIR$OUT_DIR"
-            ;;
-        *)
-            echo "Unvalid path: $OUT_DIR"
-            return 1
-            ;;
-    esac
-
-    if [ ! -f "$APK_PATH" ]; then
-        echo "File not found: $OUT_DIR"
-        return 1
-    elif [[ "$(xxd -p -l "4" "$APK_PATH")" != "504b0304" ]]; then
-        echo "File not valid: $OUT_DIR"
-        return 1
-    fi
-
-    echo "Decompiling $OUT_DIR"
-    apktool -q d $FORCE -o "$APKTOOL_DIR$OUT_DIR" -p "$FRAMEWORK_DIR" -s "$APK_PATH"
-
-    if [[ "$APK_PATH" == *"services.jar" ]]; then
-        echo "Decontaining services.jar"
-        for f in "$APKTOOL_DIR$OUT_DIR/"*.dex; do
-            [ -e "$f" ] || continue
-            DEX_NAME="$(basename "$f" .dex)"
-            if [ "$DEX_NAME" = "classes" ]; then
-                SMALI_OUT="smali"
-            else
-                SMALI_OUT="smali_$DEX_NAME"
-            fi
-            baksmali d -a 29 "$f" --ac false --di false --sl -l -o "$APKTOOL_DIR$OUT_DIR/$SMALI_OUT"
-            rm -f "$f"
-        done
-    else
-        for f in "$APKTOOL_DIR$OUT_DIR/"*.dex
-        do
-            DEX_API_LEVEL="$(DEX_TO_API "$f")"
-            echo -n "$DEX_API_LEVEL" > "$APKTOOL_DIR$OUT_DIR/../dex_api_version"
-
-            if [[ "$f" == *"classes.dex" ]]; then
-                SMALI_OUT="smali"
-            else
-                SMALI_OUT="smali_$(basename "${f//.dex/}")"
-            fi
-
-            baksmali d -a "$DEX_API_LEVEL" --ac false --di false -l -o "$APKTOOL_DIR$OUT_DIR/$SMALI_OUT" --sl "$f"
-            rm -f "$f"
-        done
-    fi
-
-    if [[ "$APK_PATH" == *"framework.jar" ]]; then
-        if unzip -l "$APK_PATH" | grep -q "debian.mime.types"; then
-            unzip -q "$APK_PATH" "res/*" -d "$APKTOOL_DIR$OUT_DIR/unknown"
-        fi
-    fi
-}
-
-DO_RECOMPILE()
-{
-    local IN_DIR="$1"
-    local APK_PATH
-    local APK_NAME
-    local DEX_FILENAME
-
-    [[ "$IN_DIR" != "/"* ]] && IN_DIR="/$IN_DIR"
-
-    case "$IN_DIR" in
-        "/system/system_ext/"*)
-            if ${TARGET_HAS_SYSTEM_EXT:-false}; then
-                APK_PATH="$WORK_DIR$(echo "$IN_DIR" | sed 's/\/system\/system_ext/\/system_ext/')"
-            else
-                APK_PATH="$WORK_DIR/system$IN_DIR"
-            fi
-            IN_DIR="$(echo "$IN_DIR" | sed 's/\/system\/system_ext/\/system_ext/')"
-            ;;
-        "/system_ext/"*)
-            if ${TARGET_HAS_SYSTEM_EXT:-false}; then
-                APK_PATH="$WORK_DIR$IN_DIR"
-            else
-                APK_PATH="$WORK_DIR/system/system$IN_DIR"
-            fi
-            ;;
-        "/system/system/"*)
-            APK_PATH="$WORK_DIR$IN_DIR"
-            IN_DIR="$(echo "$IN_DIR" | sed 's/\/system\/system/\/system/')"
-            ;;
-        "/system/"*)
-            APK_PATH="$WORK_DIR/system$IN_DIR"
-            ;;
-        "/odm/"* | "/product/"* | "/system_dlkm/"* | "/vendor/"* | "/vendor_dlkm/"*)
-            APK_PATH="$WORK_DIR$IN_DIR"
-            ;;
-        *)
-            echo "Unvalid path: $IN_DIR"
-            return 1
-            ;;
-    esac
-
-    if [ ! -d "$APKTOOL_DIR$IN_DIR" ]; then
-        echo "Folder not found: $IN_DIR"
-        return 1
-    fi
-
-    APK_NAME="$(basename "$APK_PATH")"
-
-    echo "Recompiling $IN_DIR"
-
-    for f in "$APKTOOL_DIR$IN_DIR/"*
-    do
-        [[ "$f" != *"smali"* ]] && continue
-
-        if [[ "$f" == *"smali" ]]; then
-            DEX_FILENAME="classes.dex"
-        else
-            DEX_FILENAME="$(basename "${f/smali_//}").dex"
-        fi
-
-        if [[ "$APK_NAME" == "services.jar" ]]; then
-            smali a -a 29 -o "$APKTOOL_DIR$IN_DIR/$DEX_FILENAME" "$f"
-        else
-            local DEX_VER="29"
-            if [ -f "$APKTOOL_DIR$IN_DIR/../dex_api_version" ]; then
-                DEX_VER="$(cat "$APKTOOL_DIR$IN_DIR/../dex_api_version")"
-            fi
-            smali a -a "$DEX_VER" -o "$APKTOOL_DIR$IN_DIR/$DEX_FILENAME" "$f"
-        fi
-    done
-
-    mkdir -p "$APKTOOL_DIR$IN_DIR/build/apk"
-    cp -a --preserve=all "$APKTOOL_DIR$IN_DIR/original/META-INF" "$APKTOOL_DIR$IN_DIR/build/apk/META-INF" 2>/dev/null || true
-
-    # Removed -q flag so AAPT2 prints specific compilation errors if linking fails
-    apktool b -p "$FRAMEWORK_DIR" -srp "$APKTOOL_DIR$IN_DIR"
-    [[ -f "$APKTOOL_DIR$IN_DIR/classes.dex" ]] && rm -f "$APKTOOL_DIR$IN_DIR/"*.dex
-
-    echo "Zipaligning $IN_DIR"
-    zipalign -f -p 4 "$APKTOOL_DIR$IN_DIR/dist/$APK_NAME" "$APKTOOL_DIR$IN_DIR/dist/temp" \
-        && mv -f "$APKTOOL_DIR$IN_DIR/dist/temp" "$APKTOOL_DIR$IN_DIR/dist/$APK_NAME"
-
-    mv -f "$APKTOOL_DIR$IN_DIR/dist/$APK_NAME" "$APK_PATH"
-    rm -rf "$APKTOOL_DIR$IN_DIR/build" "$APKTOOL_DIR$IN_DIR/dist"
-
-    if [ -d "${APK_PATH%/*}/oat" ]; then
-        REMOVE_FROM_WORK_DIR "${APK_PATH%/*}/oat"
-    fi
-    if [ -f "${APK_PATH%/*}/$APK_NAME.prof" ]; then
-        REMOVE_FROM_WORK_DIR "${APK_PATH%/*}/$APK_NAME.prof"
-    fi
-    if [ -f "${APK_PATH%/*}/$APK_NAME.bprof" ]; then
-        REMOVE_FROM_WORK_DIR "${APK_PATH%/*}/$APK_NAME.bprof"
-    fi
-}
-
-FRAMEWORK_DIR="$APKTOOL_DIR/bin/fw"
-mkdir -p "$FRAMEWORK_DIR"
-
-# Ensure 1.apk exists in the framework cache directory
-if [ ! -f "$FRAMEWORK_DIR/1.apk" ]; then
-    FW_PATH=""
-    if [ -f "$WORK_DIR/system/system/framework/framework-res.apk" ]; then
-        FW_PATH="$WORK_DIR/system/system/framework/framework-res.apk"
-    elif [ -f "$WORK_DIR/system/framework/framework-res.apk" ]; then
-        FW_PATH="$WORK_DIR/system/framework/framework-res.apk"
-    elif [ -f "${SRC_DIR:-$PWD}/prebuilts/samsung/a366b/framework-res.apk" ]; then
-        FW_PATH="${SRC_DIR:-$PWD}/prebuilts/samsung/a366b/framework-res.apk"
-    fi
-
-    if [ -n "$FW_PATH" ]; then
-        echo "Setting up apktool env using: $FW_PATH"
-        apktool -q if -p "$FRAMEWORK_DIR" "$FW_PATH"
-
-        # Also import twframework-res if present alongside framework-res
-        TW_FW="${FW_PATH%/*}/twframework-res.apk"
-        if [ -f "$TW_FW" ]; then
-            echo "Setting up twframework-res env using: $TW_FW"
-            apktool -q if -p "$FRAMEWORK_DIR" "$TW_FW"
-        fi
-    else
-        echo "Error: Could not locate framework-res.apk in work_dir or prebuilts."
-        exit 1
-    fi
-fi
-
-if [ "$#" -eq 0 ]; then
-    PRINT_USAGE
+if [ ! "$FRAMEWORK_TAG" ]; then
+    LOGE "Work dir needs to be set up before using this script"
     exit 1
+elif [ ! -f "$FRAMEWORK_DIR/1-$FRAMEWORK_TAG.apk" ]; then
+    LOGW "framework-res.apk for \"$FRAMEWORK_TAG\" not found, installing"
+    EVAL "apktool if -p \"$FRAMEWORK_DIR\" -t \"$FRAMEWORK_TAG\" \"$WORK_DIR/system/system/framework/framework-res.apk\"" || exit 1
 fi
 
-DECOMPILE=false
-RECOMPILE=false
-
-case "$1" in
+case "$ACTION" in
     "d" | "decode")
-        DECOMPILE=true
+        DECODE
         ;;
     "b" | "build")
-        RECOMPILE=true
-        ;;
-    *)
-        PRINT_USAGE
-        exit 1
+        BUILD
         ;;
 esac
-
-shift
-
-FORCE=""
-
-if [[ "${1:-}" == "-f" ]] || [[ "${1:-}" == "--force" ]]; then
-    FORCE="-f"
-    shift
-fi
-
-if [ "$#" -eq 0 ]; then
-    PRINT_USAGE
-    exit 1
-fi
-
-while [ "$#" -ne 0 ]; do
-    if $DECOMPILE; then
-        DO_DECOMPILE "$1"
-    elif $RECOMPILE; then
-        DO_RECOMPILE "$1"
-    else
-        PRINT_USAGE
-        exit 1
-    fi
-    shift
-done
 
 exit 0
