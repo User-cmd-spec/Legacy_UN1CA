@@ -34,7 +34,7 @@ REMOVE_FROM_WORK_DIR()
     if [ -e "$FILE_PATH" ]; then
         local FILE
         local PARTITION
-        FILE="$(echo -n "$FILE_PATH" | sed "s.$WORK_DIR/..")"
+        FILE="$(echo -n "$FILE_PATH" | sed "s|^$WORK_DIR/||")"
         PARTITION="$(echo -n "$FILE" | cut -d "/" -f 1)"
 
         echo "Debloating /$FILE"
@@ -95,15 +95,15 @@ DO_DECOMPILE()
 
     case "$OUT_DIR" in
         "/system/system_ext/"*)
-            if $TARGET_HAS_SYSTEM_EXT; then
+            if ${TARGET_HAS_SYSTEM_EXT:-false}; then
                 APK_PATH="$WORK_DIR$(echo "$OUT_DIR" | sed 's/\/system\/system_ext/\/system_ext/')"
             else
                 APK_PATH="$WORK_DIR/system$OUT_DIR"
             fi
             OUT_DIR="$(echo "$OUT_DIR" | sed 's/\/system\/system_ext/\/system_ext/')"
-        ;;
+            ;;
         "/system_ext/"*)
-            if $TARGET_HAS_SYSTEM_EXT; then
+            if ${TARGET_HAS_SYSTEM_EXT:-false}; then
                 APK_PATH="$WORK_DIR$OUT_DIR"
             else
                 APK_PATH="$WORK_DIR/system/system$OUT_DIR"
@@ -134,13 +134,13 @@ DO_DECOMPILE()
     fi
 
     echo "Decompiling $OUT_DIR"
-    apktool -q d -b $FORCE -o "$APKTOOL_DIR$OUT_DIR" -p "$FRAMEWORK_DIR" -s "$APK_PATH"
+    apktool -q d $FORCE -o "$APKTOOL_DIR$OUT_DIR" -p "$FRAMEWORK_DIR" -s "$APK_PATH"
 
     if [[ "$APK_PATH" == *"services.jar" ]]; then
         echo "Decontaining services.jar"
-        baksmali d -a 29 "$APK_PATH/classes.dex" --ac false --di false --sl -l -o "$APKTOOL_DIR$OUT_DIR/smali"
-        baksmali d -a 29 "$APK_PATH/classes.dex/2" --ac false --di false --sl -l -o "$APKTOOL_DIR$OUT_DIR/smali_classes2"
-        rm "$APKTOOL_DIR$OUT_DIR/classes.dex"
+        baksmali d -a 29 "$APKTOOL_DIR$OUT_DIR/classes.dex" --ac false --di false --sl -l -o "$APKTOOL_DIR$OUT_DIR/smali"
+        baksmali d -a 29 "$APKTOOL_DIR$OUT_DIR/classes2.dex" --ac false --di false --sl -l -o "$APKTOOL_DIR$OUT_DIR/smali_classes2"
+        rm -f "$APKTOOL_DIR$OUT_DIR/classes.dex" "$APKTOOL_DIR$OUT_DIR/classes2.dex"
     else
         for f in "$APKTOOL_DIR$OUT_DIR/"*.dex
         do
@@ -154,7 +154,7 @@ DO_DECOMPILE()
             fi
 
             baksmali d -a "$DEX_API_LEVEL" --ac false --di false -l -o "$APKTOOL_DIR$OUT_DIR/$SMALI_OUT" --sl "$f"
-            rm "$f"
+            rm -f "$f"
         done
     fi
 
@@ -176,15 +176,15 @@ DO_RECOMPILE()
 
     case "$IN_DIR" in
         "/system/system_ext/"*)
-            if $TARGET_HAS_SYSTEM_EXT; then
+            if ${TARGET_HAS_SYSTEM_EXT:-false}; then
                 APK_PATH="$WORK_DIR$(echo "$IN_DIR" | sed 's/\/system\/system_ext/\/system_ext/')"
             else
                 APK_PATH="$WORK_DIR/system$IN_DIR"
             fi
             IN_DIR="$(echo "$IN_DIR" | sed 's/\/system\/system_ext/\/system_ext/')"
-        ;;
+            ;;
         "/system_ext/"*)
-            if $TARGET_HAS_SYSTEM_EXT; then
+            if ${TARGET_HAS_SYSTEM_EXT:-false}; then
                 APK_PATH="$WORK_DIR$IN_DIR"
             else
                 APK_PATH="$WORK_DIR/system/system$IN_DIR"
@@ -225,26 +225,30 @@ DO_RECOMPILE()
             DEX_FILENAME="$(basename "${f/smali_//}").dex"
         fi
 
-        if [[ $APK_NAME == "services.jar" ]]; then
+        if [[ "$APK_NAME" == "services.jar" ]]; then
             smali a -a 29 -o "$APKTOOL_DIR$IN_DIR/$DEX_FILENAME" "$f"
         else
-            smali a -a "$(cat "$APKTOOL_DIR$IN_DIR/../dex_api_version")" -o "$APKTOOL_DIR$IN_DIR/$DEX_FILENAME" "$f"
+            local DEX_VER="29"
+            if [ -f "$APKTOOL_DIR$IN_DIR/../dex_api_version" ]; then
+                DEX_VER="$(cat "$APKTOOL_DIR$IN_DIR/../dex_api_version")"
+            fi
+            smali a -a "$DEX_VER" -o "$APKTOOL_DIR$IN_DIR/$DEX_FILENAME" "$f"
         fi
     done
 
     mkdir -p "$APKTOOL_DIR$IN_DIR/build/apk"
-    cp -a --preserve=all "$APKTOOL_DIR$IN_DIR/original/META-INF" "$APKTOOL_DIR$IN_DIR/build/apk/META-INF"
-    
+    cp -a --preserve=all "$APKTOOL_DIR$IN_DIR/original/META-INF" "$APKTOOL_DIR$IN_DIR/build/apk/META-INF" 2>/dev/null || true
+
     # Removed -q flag so AAPT2 prints specific compilation errors if linking fails
     apktool b -p "$FRAMEWORK_DIR" -srp "$APKTOOL_DIR$IN_DIR"
-    [[ -f "$APKTOOL_DIR$IN_DIR/classes.dex" ]] && rm "$APKTOOL_DIR$IN_DIR/"*.dex
+    [[ -f "$APKTOOL_DIR$IN_DIR/classes.dex" ]] && rm -f "$APKTOOL_DIR$IN_DIR/"*.dex
 
     echo "Zipaligning $IN_DIR"
     zipalign -f -p 4 "$APKTOOL_DIR$IN_DIR/dist/$APK_NAME" "$APKTOOL_DIR$IN_DIR/dist/temp" \
         && mv -f "$APKTOOL_DIR$IN_DIR/dist/temp" "$APKTOOL_DIR$IN_DIR/dist/$APK_NAME"
 
     mv -f "$APKTOOL_DIR$IN_DIR/dist/$APK_NAME" "$APK_PATH"
-    rm -rf "$APKTOOL_DIR$IN_DIR/build" && rm -rf "$APKTOOL_DIR$IN_DIR/dist"
+    rm -rf "$APKTOOL_DIR$IN_DIR/build" "$APKTOOL_DIR$IN_DIR/dist"
 
     if [ -d "${APK_PATH%/*}/oat" ]; then
         REMOVE_FROM_WORK_DIR "${APK_PATH%/*}/oat"
@@ -287,7 +291,7 @@ if [ ! -f "$FRAMEWORK_DIR/1.apk" ]; then
     fi
 fi
 
-if [ "$#" == 0 ]; then
+if [ "$#" -eq 0 ]; then
     PRINT_USAGE
     exit 1
 fi
@@ -312,17 +316,17 @@ shift
 
 FORCE=""
 
-if [[ "$1" == "-f" ]] || [[ "$1" == "--force" ]]; then
+if [[ "${1:-}" == "-f" ]] || [[ "${1:-}" == "--force" ]]; then
     FORCE="-f"
     shift
 fi
 
-if [ "$#" == 0 ]; then
+if [ "$#" -eq 0 ]; then
     PRINT_USAGE
     exit 1
 fi
 
-while [ "$#" != 0 ]; do
+while [ "$#" -ne 0 ]; do
     if $DECOMPILE; then
         DO_DECOMPILE "$1"
     elif $RECOMPILE; then
