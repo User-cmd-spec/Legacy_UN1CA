@@ -28,7 +28,7 @@
 #   the STOCK precompiled binary (fast, skips the broken product CIL compile,
 #   but the loaded policy is the stock one — see the warning in the output).
 #===============================================================================
-set -euo pipefail
+set -eo pipefail
 
 # ---------------------------------------------------------------- configuration
 SRC_DIR="${SRC_DIR:?SRC_DIR must be set, e.g. /home/runner/work/Legacy_UN1CA/Legacy_UN1CA}"
@@ -39,12 +39,12 @@ REGEN_DIR="${REGENERATED_SEPOLICY_DIR:-}"
 VENDOR_SRC="${VENDOR_SRC:-$SRC_DIR/target/$DEVICE/prebuilt_images/vendor}"
 VENDOR_OUT="${VENDOR_OUT:-$WORK_DIR/vendor}"
 
-# Root of the extracted system image (adjust if your tree differs)
+# Root of the extracted system image
 SYS_ROOT="${SYS_ROOT:-$WORK_DIR/system/system}"
 PLAT_SELINUX_DIR="$SYS_ROOT/etc/selinux"
 SYS_EXT_SELINUX_DIR="$SYS_ROOT/system_ext/etc/selinux"
 PRODUCT_SELINUX_DIR="$SYS_ROOT/product/etc/selinux"
-# ODM sepolicy lives inside the vendor image on Samsung (non-dynamic layout)
+# ODM sepolicy lives inside the vendor image on Samsung
 ODM_SELINUX_DIR="$VENDOR_OUT/odm/etc/selinux"
 
 TMP_IMG="$WORK_DIR/.vendor_work/vendor.img"
