@@ -138,9 +138,17 @@ DO_DECOMPILE()
 
     if [[ "$APK_PATH" == *"services.jar" ]]; then
         echo "Decontaining services.jar"
-        baksmali d -a 29 "$APKTOOL_DIR$OUT_DIR/classes.dex" --ac false --di false --sl -l -o "$APKTOOL_DIR$OUT_DIR/smali"
-        baksmali d -a 29 "$APKTOOL_DIR$OUT_DIR/classes2.dex" --ac false --di false --sl -l -o "$APKTOOL_DIR$OUT_DIR/smali_classes2"
-        rm -f "$APKTOOL_DIR$OUT_DIR/classes.dex" "$APKTOOL_DIR$OUT_DIR/classes2.dex"
+        for f in "$APKTOOL_DIR$OUT_DIR/"*.dex; do
+            [ -e "$f" ] || continue
+            DEX_NAME="$(basename "$f" .dex)"
+            if [ "$DEX_NAME" = "classes" ]; then
+                SMALI_OUT="smali"
+            else
+                SMALI_OUT="smali_$DEX_NAME"
+            fi
+            baksmali d -a 29 "$f" --ac false --di false --sl -l -o "$APKTOOL_DIR$OUT_DIR/$SMALI_OUT"
+            rm -f "$f"
+        done
     else
         for f in "$APKTOOL_DIR$OUT_DIR/"*.dex
         do
