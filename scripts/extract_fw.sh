@@ -24,7 +24,6 @@ _MOVE_CONFIGS() {
     local TARGET_CONFIG_DIR="${CONFIGS_DIR:-$WORK_DIR/configs}"
     mkdir -p "$TARGET_CONFIG_DIR" 2>/dev/null
     for cfg in fs_config-* file_context-*; do
-        # Process only if it is a regular file and NOT a symlink
         if [ -f "$cfg" ] && [ ! -L "$cfg" ]; then
             mv -f "$cfg" "$TARGET_CONFIG_DIR/" 2>/dev/null
             ln -sf "$TARGET_CONFIG_DIR/$cfg" "$cfg" 2>/dev/null
@@ -58,7 +57,6 @@ EXTRACT_CSC_PARTITIONS() {
         TAR_SOURCE=""
         TARGET_FILE=""
 
-        # If processing SOURCE_FIRMWARE, check its dedicated CSC tar archive first
         if [ "$IS_SOURCE_FW" = true ] && [ -n "$CSC_TAR" ] && [ -f "$CSC_TAR" ]; then
             for ext in "${part}.img.lz4" "${part}.img.ext4.lz4"; do
                 if tar tf "$CSC_TAR" "$ext" &>/dev/null; then
@@ -69,7 +67,6 @@ EXTRACT_CSC_PARTITIONS() {
             done
         fi
 
-        # Fallback check across AP and BL archives if not found in CSC tar
         if [ -z "$TAR_SOURCE" ]; then
             for archive in "$AP_TAR" "$BL_TAR"; do
                 [ -z "$archive" ] || [ ! -f "$archive" ] && continue
@@ -92,7 +89,7 @@ EXTRACT_CSC_PARTITIONS() {
         elif [ -f "${part}_a.img" ]; then
             mv "${part}_a.img" "${part}.img"
         elif [ -f "${part}.img" ]; then
-            : # Already present in directory
+            : 
         else
             echo "  - ${part} image not found in TARs or extracted super."
             continue
@@ -143,30 +140,32 @@ EXTRACT_CSC_PARTITIONS() {
 EXTRACT_OS_PARTITIONS() {
     local PDR="$(pwd)" SHOULD_EXTRACT=false SHOULD_EXTRACT_SUPER=false PARTITION_MASK=".img" HAS_SUPER=false
     cd "$FW_DIR/${MODEL}_${REGION}" 2>/dev/null || return 0
-    [ -z "$AP_TAR" ] && return 0
+    [ -z "$AP_TAR" ] && [ ! -f "system.img" ] && return 0
 
-    if tar tf "$AP_TAR" "super.img.lz4" >/dev/null 2>&1; then
-        HAS_SUPER=true
-    else
-        echo "- Unpacking raw non-super partitions from AP tar..."
-        for part in system vendor product odm; do
-            for ext in "${part}.img.ext4.lz4" "${part}.img.lz4"; do
-                if tar tf "$AP_TAR" "$ext" >/dev/null 2>&1; then
-                    echo "    - Extracting ${ext}..."
-                    tar xf "$AP_TAR" "$ext" 2>/dev/null
-                    lz4 -d -q --rm "$ext" "${part}.img.sparse" 2>/dev/null
-                    simg2img "${part}.img.sparse" "${part}.img" 2>/dev/null
-                    rm -f "${part}.img.sparse"
-                    break
-                fi
+    if [ -n "$AP_TAR" ]; then
+        if tar tf "$AP_TAR" "super.img.lz4" >/dev/null 2>&1; then
+            HAS_SUPER=true
+        else
+            echo "- Unpacking raw non-super partitions from AP tar..."
+            for part in system vendor product odm; do
+                for ext in "${part}.img.ext4.lz4" "${part}.img.lz4"; do
+                    if tar tf "$AP_TAR" "$ext" >/dev/null 2>&1; then
+                        echo "    - Extracting ${ext}..."
+                        tar xf "$AP_TAR" "$ext" 2>/dev/null
+                        lz4 -d -q --rm "$ext" "${part}.img.sparse" 2>/dev/null
+                        simg2img "${part}.img.sparse" "${part}.img" 2>/dev/null
+                        rm -f "${part}.img.sparse"
+                        break
+                    fi
+                done
             done
-        done
+        fi
     fi
     echo "- Processing OS partitions..."
 
     for folder in odm product system vendor; do
         [ ! -d "$folder" ] && SHOULD_EXTRACT=true
-        [ ! -f "$folder.img" ] && SHOULD_EXTRACT_SUPER=true
+        [ ! -f "$folder.img" ] && [ -n "$AP_TAR" ] && SHOULD_EXTRACT_SUPER=true
     done
 
     if $SHOULD_EXTRACT; then
@@ -192,7 +191,6 @@ EXTRACT_OS_PARTITIONS() {
             local PARTITION="${img%$PARTITION_MASK}" PREFIX=""
             local FS_TYPE="$(GET_IMG_FS_TYPE "$img")"
 
-            # Defer prism and optics so EXTRACT_CSC_PARTITIONS processes them cleanly
             if [ "$PARTITION" = "prism" ] || [ "$PARTITION" = "optics" ]; then
                 continue
             fi
@@ -273,13 +271,17 @@ EXTRACT_ALL() {
     BL_TAR=$(find "$ODIN_DIR/${MODEL}_${REGION}" -maxdepth 1 -name "BL*" 2>/dev/null | head -n 1)
     AP_TAR=$(find "$ODIN_DIR/${MODEL}_${REGION}" -maxdepth 1 -name "AP*" 2>/dev/null | head -n 1)
     
-    # Strictly search for CSC_ files and ignore HOME_CSC
     CSC_TAR=""
     if [ "$IS_SOURCE_FW" = true ]; then
         CSC_TAR=$(find "$ODIN_DIR/${MODEL}_${REGION}" -maxdepth 1 -name "CSC_*" 2>/dev/null | grep -v "HOME_CSC" | head -n 1)
     fi
 
     mkdir -p "$FW_DIR/${MODEL}_${REGION}" 2>/dev/null
+
+    if [[ "$MODEL" == *"A366B"* ]] && [ -f "$ODIN_DIR/${MODEL}_${REGION}/a366bsystem.img" ]; then
+        cp --preserve=all "$ODIN_DIR/${MODEL}_${REGION}/a366bsystem.img" "$FW_DIR/${MODEL}_${REGION}/system.img" 2>/dev/null
+    fi
+
     EXTRACT_KERNEL_BINARIES
     EXTRACT_OS_PARTITIONS
     EXTRACT_CSC_PARTITIONS
