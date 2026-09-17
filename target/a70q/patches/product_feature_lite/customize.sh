@@ -19,53 +19,87 @@ patch_file() {
     file_path=$(find "$APKTOOL_DIR/$target_pkg" -type f -path "*/$relative_path" 2>/dev/null | head -n 1)
 
     if [ -n "$file_path" ] && [ -f "$file_path" ]; then
-        echo "  -> Patching: $file_path"
+        echo "  -> Dynamic Patching: $file_path"
         sed -i "s/$search_pattern/$replace_pattern/g" "$file_path"
+        return 0
     else
-        echo "  !! Warning: $relative_path not found in $target_pkg, skipping..."
+        echo "  !! Warning: $relative_path not found in $target_pkg"
+        return 1
     fi
 }
 
-echo "Applying MAINLINE_API_LEVEL patches"
-patch_file "system/framework/esecomm.jar" "com/sec/esecomm/EsecommAdapter.smali" "\"MAINLINE_API_LEVEL: 35\"" "\"MAINLINE_API_LEVEL: 30\""
-patch_file "system/framework/esecomm.jar" "com/sec/esecomm/EsecommAdapter.smali" "\"35\"" "\"30\""
+extract_spf_val() {
+    local base_dir="$1"
+    local feature_key="$2"
+    grep -rn "$feature_key" "$base_dir" 2>/dev/null | grep -oE '"[^"]+"|[0-9]+' | head -n 1 | tr -d '"' || true
+}
 
-patch_file "system/framework/services.jar" "com/android/server/SystemServer.smali" "\"MAINLINE_API_LEVEL: 35\"" "\"MAINLINE_API_LEVEL: 30\""
-patch_file "system/framework/services.jar" "com/android/server/SystemServer.smali" "\"35\"" "\"30\""
+compare_and_patch_feature() {
+    local target_pkg="$1"
+    local relative_smali_path="$2"
+    local feature_key="$3"
+    local fallback_src_val="$4"
+    local fallback_tgt_val="$5"
 
-patch_file "system/framework/services.jar" "com/android/server/power/PowerManagerUtil.smali" "\"MAINLINE_API_LEVEL: 35\"" "\"MAINLINE_API_LEVEL: 30\""
-patch_file "system/framework/services.jar" "com/android/server/power/PowerManagerUtil.smali" "\"35\"" "\"30\""
+    echo "Checking SEC Product Feature: $feature_key"
 
-patch_file "system/framework/services.jar" "com/android/server/sepunion/EngmodeService\$EngmodeTimeThread.smali" "\"MAINLINE_API_LEVEL: 35\"" "\"MAINLINE_API_LEVEL: 30\""
-patch_file "system/framework/services.jar" "com/android/server/sepunion/EngmodeService\$EngmodeTimeThread.smali" "\"35\"" "\"30\""
+    local src_val=""
+    local tgt_val=""
 
-echo "Applying mDNIe features patches"
-patch_file "system/framework/services.jar" "com/samsung/android/hardware/display/SemMdnieManagerService.smali" "\"37905\"" "\"46097\""
-patch_file "system/framework/services.jar" "com/samsung/android/hardware/display/SemMdnieManagerService.smali" "\"3\"" "\"0\""
+    if [ -n "$SRC_FW_DIR" ] && [ -d "$SRC_FW_DIR" ]; then
+        src_val=$(extract_spf_val "$SRC_FW_DIR" "$feature_key")
+    fi
 
-echo "Applying HFR_MODE patches"
-patch_file "system/framework/framework.jar" "com/samsung/android/rune/CoreRune.smali" "\"2\"" "\"0\""
-patch_file "system/framework/framework.jar" "com/samsung/android/hardware/display/RefreshRateConfig.smali" "\"2\"" "\"0\""
-patch_file "system/framework/gamemanager.jar" "com/samsung/android/game/GameManagerService.smali" "\"2\"" "\"0\""
-patch_file "system/framework/secinputdev-service.jar" "com/samsung/android/hardware/secinputdev/SemInputDeviceManagerService.smali" "\"2\"" "\"0\""
-patch_file "system/framework/secinputdev-service.jar" "com/samsung/android/hardware/secinputdev/utils/SemInputFeatures.smali" "\"2\"" "\"0\""
-patch_file "system/framework/secinputdev-service.jar" "com/samsung/android/hardware/secinputdev/utils/SemInputFeaturesExtra.smali" "\"2\"" "\"0\""
-patch_file "system/priv-app/SecSettings/SecSettings.apk" "com/samsung/android/settings/display/SecDisplayUtils.smali" "\"2\"" "\"0\""
-patch_file "system/priv-app/SettingsProvider/SettingsProvider.apk" "com/android/providers/settings/DatabaseHelper.smali" "\"2\"" "\"0\""
-patch_file "system_ext/priv-app/SystemUI/SystemUI.apk" "com/android/systemui/LsRune.smali" "\"2\"" "\"0\""
+    if [ -n "$TGT_FW_DIR" ] && [ -d "$TGT_FW_DIR" ]; then
+        tgt_val=$(extract_spf_val "$TGT_FW_DIR" "$feature_key")
+    fi
 
-echo "Applying HFR_SUPPORTED_REFRESH_RATE patches"
-HFR_REPLACE="\"\""
-if [[ "$TARGET_HFR_SUPPORTED_REFRESH_RATE" != "none" ]]; then
-    HFR_REPLACE="\"60\""
-fi
+    [ -z "$src_val" ] && src_val="$fallback_src_val"
+    [ -z "$tgt_val" ] && tgt_val="$fallback_tgt_val"
 
-patch_file "system/framework/framework.jar" "com/samsung/android/hardware/display/RefreshRateConfig.smali" "\"60,120\"" "$HFR_REPLACE"
-patch_file "system/priv-app/SecSettings/SecSettings.apk" "com/samsung/android/settings/display/SecDisplayUtils.smali" "\"60,120\"" "$HFR_REPLACE"
+    if [ "$src_val" != "$tgt_val" ] && [ -n "$src_val" ] && [ -n "$tgt_val" ]; then
+        echo "  -> Discrepancy found for $feature_key (Source: $src_val | Target: $tgt_val)"
+        patch_file "$target_pkg" "$relative_smali_path" "\"$tgt_val\"" "\"$src_val\""
+    else
+        echo "  -> Feature $feature_key matches or skip needed (Source: $src_val | Target: $tgt_val)"
+    fi
+}
 
-echo "Applying SemMultiMicManager patches"
-patch_file "system/framework/framework.jar" "com/samsung/android/camera/mic/SemMultiMicManager.smali" "08020" "07002"
+echo "=== Processing SEC Product Feature patches ==="
 
-echo "Applying model detection patches"
-patch_file "system/framework/framework.jar" "com/samsung/android/rune/CoreRune.smali" "ro\.product\.model" "ro\.product\.vendor\.model"
-patch_file "system/framework/services.jar" "com/android/server/am/FreecessController.smali" "ro\.product\.model" "ro\.product\.vendor\.model"
+compare_and_patch_feature \
+    "system/framework/services.jar" \
+    "com/android/server/power/PowerManagerUtil.smali" \
+    "SEC_FLOATING_FEATURE_SETTINGS_MAINLINE_API_LEVEL" \
+    "30" \
+    "35"
+
+compare_and_patch_feature \
+    "system/framework/services.jar" \
+    "com/samsung/android/hardware/display/SemMdnieManagerService.smali" \
+    "SEC_FLOATING_FEATURE_LCD_SUPPORT_MDNIE_HW" \
+    "46097" \
+    "37905"
+
+compare_and_patch_feature \
+    "system/framework/framework.jar" \
+    "com/samsung/android/hardware/display/RefreshRateConfig.smali" \
+    "SEC_FLOATING_FEATURE_LCD_CONFIG_HFR_MODE" \
+    "0" \
+    "2"
+
+compare_and_patch_feature \
+    "system/priv-app/SecSettings/SecSettings.apk" \
+    "com/samsung/android/settings/display/SecDisplayUtils.smali" \
+    "SEC_FLOATING_FEATURE_LCD_CONFIG_HFR_REFRESH_RATE" \
+    "${TARGET_HFR_SUPPORTED_REFRESH_RATE:-60}" \
+    "60,120"
+
+compare_and_patch_feature \
+    "system/framework/framework.jar" \
+    "com/samsung/android/camera/mic/SemMultiMicManager.smali" \
+    "SEC_FLOATING_FEATURE_AUDIO_CONFIG_MULTIMIC" \
+    "07002" \
+    "08020"
+
+echo "=== SEC Product Feature patching completed ==="
