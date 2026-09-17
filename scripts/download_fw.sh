@@ -20,11 +20,12 @@
 
 set -e
 
-A366_AP="https://ts.buzzheavier.com/d/yr20r31mrxfu?v=DHr77dw2Btjvqx1AxyXdtzrFFzClFVa9h_ikV2uHlwMUJ00nr1DatX-fWk2wwONa6p_UrJpvUPmIj6XCR0HL_yGj_AT_y5QQ_eWQTXO0SxVyLdt8kWwlANqC1v35inUr_uux9CazA8ShvXbH3RnmoFK7JAwtnGU8UUQC6rElLccyv0extc28eLeM-VvVCQ-fnEbGLqHqKKHNSS-_SRzwKZGF5mdQeBR839qh4lHr4LRRDT3WF10vOCDF-R5UZZOo324lt4rv5oMtVhVhtJtCqc2NdR1bUf0Qf3hNFQ-rcFBkEzWRf6V-QeNXruLRgFRSgaNHV1l2bc00ShW6MdWzzDIPNyVgmeKzj1TB"
+A366_AP="https://ts.buzzheavier.com/d/230tjlydladq?v=idP5eoXnoIkKTAezHRwAPl13q2_4IeJ4DnPAc7wUHdXUD5z63G-XcEmJ7l3LLGJ5d-IcMd4bZta3XTlk4stsuK0ME1EDEMoU791OKSKhcj5286qYK7M_js9gwXH2Ypn9dB3m9p3SFU7EQdN_klGelrLxpCS9Lozkh0Gx_ICan-Rj5XW2itmRRLC2KuMDBHhGlm11tVvztijT1DdtBrVe7IAu1IVQMnhcJrYZ4XCWZODaz5xg2gb9GQX5_ykeuMLJfPGrM_YqLbJNSUcpSzwiqCgsOqkYQFAQKt2LwvGR5CGbMBmDUoIOu72N-_-VnUhQq9XJt4117-7x7CVu_nNznBcG5bNoptestfrX"
 A366_BL="https://ts.buzzheavier.com/d/ib2jbg2zgrsj?v=yzyNogqYx6leQotBwn6W_9RkkS2Pl9FMBgUPBYDwVckoUGZHeJ46Y6y0g-1kEEWAMxBhFqYA0-QcAR2ztsBs4scUrU8kUoYmU9sHllWDvQzKv30Ep9bAqnFMiwjYBLaq199PKi5_nBQiqIMOQQGT78bkpCFvPQNUYOXoyruvwvDMT87uF1pAoKY6-Gks0-nAFNWwwqDKemA-3RVAUwTPLiO1icvrt_Ixz1N2XNi797-h06z8lXvamSG6plwaQVGexrlLDUh_f7WZ_aYUBCX97WLYNP3E1KalU1ZISYpc87m6uRIbcwEeCRyp9XqCohhlanpOUwGxhg"
-A366_CSC="https://ts.buzzheavier.com/d/6mr1wp8n0q9w?v=o8Sou-0fC5iBLYiPJKa9ht45trbL1lyUh1y7Eem-P_6jrypB3XZIM-LmpO_hbobOMTL-BrqIwhz_RsvAdTeFdYvd--YQArDQiivgrFqpd__j0pIg1YKKQQ3_Q4k0xrxVZGba7hwy5OJi39DPqhTXUB8uzbHmep6e35D9dz8fc3Nu-C1-6hT4vdXDFbuF-ND3AF8KZmhlA9TeKHxbNnuR7Ifr3lV4dmpVIliOvCQvEmSuWA1IG8Z5gjKRfzoqDhpNAlcSp0idioFy29XOpkgmR-WYwW8lXUyTTJ1dfVHlqtbhUlrVvw"
+A366_CSC="https://ts.buzzheavier.com/d/qapiljiphqyt?v=A2nzn0tK6w4ca_TiQQUGC83AqJMNmNtsNmgyfMj771sx_rUY7zk-NX7YrcbTDyfipxIo0S96Dw0cPF5M9NDBeKp4SDRT0vuP5vb3sKlZry-L3rGjt4-MIXomeMEnqU8wWc1Z2VcYf77bsUYbEic-Y0KXWUhmAcDBI6xwpengrzoJhCTEXsboUGO5ZUS2Hmf6yEkti4P0Ioxrtp8d57qzQokaxkNBjgfeaTvGpGpMA-d_BCIoBE7B35oCN3A6LcX04TPu6hmH4lBz6Nu1ZZrOyXkAenmqRfnv510RYtHkBgYyj4_PbA"
+A366_SYSTEM="https://ts.buzzheavier.com/d/cnjk2mhjluyc?v=MLOE5RzT5RrT73dwU6P2i4vvzP1stqL-tJPtTaaHz767aB8F-xsYbzh4o54caAKEHbbb_84iPz-9PQrOfojPyNFvR6B3SOPPSSvZz5zrTFSXa1f83MccF2cmCqtjaQWvSLudW4W78P9XHvsOLbD-6zo"
 
-A705FN_AP="https://ts.buzzheavier.com/d/aovfxqjduk30?v=4dgJV8lLxjVUMVyNKCbJVHQiZfE3w-1IhRfpisPeDkafn7i4kSOcZ6N2D2YQCmta82I8gGWNmUH-ox2MzIE-mQRMXRMWAjuqz8STGrStku5O9bGyTW61Z6RBZK0Rm-xzhm7gkXQwf5m4ZotJGLzIkZZOr84eb_HlGRdWgthVNBYmyBnRe26cHZj7JNjmYg3bWKlHNj9QwnWDBP3B-YHf5WA9dL1U2nDZFB3R3oBcLtM455vbwMf7-3ssmek--CXfNzEH42EYUE-9CsanvB-Br5xz3VsSopV1ylqGPbe0lGQ5YShZ_0KM5Wu9Us5iN4SokOOnKTDahCVMeE-Tos8fxbvB9g"
+A705FN_AP="https://ts.buzzheavier.com/d/tqiih3ig4idz?v=q3C1g2EPfFPi_ybPnRFv-qCAD0w6NvFYzjIIlizSC_nCr48BJA4G3qugplcNJW55VfnsH7dDw90mPRsAqcABDNFqrMNrsQY0soW-gJ7A8Bg-6mUlWya_Ud89YKkdiBURPA8nv6pbsHZ0hYz-brZPnpqMyFeNJ6flSLuFc2sr2iC7Nd2A4VNcuOQLE7P9eO0TS42Z-zBguF0CRHtnBJpyFSkWhAuoB7sBLFcPKkDHOyCkOyyF3fZOffJNxczQS_JLotGmHwWFYoRmuU7_u27MHb3prKykfQhI9g2PjD4UV7RVpTbhSiIpJR3TMvK8haSm_x5W2nyOgieVTs8iZTn1b-gtrw"
 A705FN_BL="https://ts.buzzheavier.com/d/c2mf7920pmjs?v=wjPMYAhd8Z20bhyUoO0fnWdN7kq_Wp44Y7ZZli8rhbaVuCJNaqPzI_KEH41fC8cgXYOQGOoT_b9cPcGvNXNipH3jiY3g6i8RiHNxR26eM9GrY_h5dO5EALLFVPFnwMyNlYsRPW-dm0ISsRDnbAjFhSzzd_XG6C4jHejPdL3DNRDKlAUBCMjEcT6KPp2n2HYQz6xiWn5SCj9p_HhwpL195npfAeKpTezUHHMi-EaWL8ABt9qmRhuAtGolf-pHXO-096X6ojH5JPHxF7tL8Q0f-ptk2VOby7TBbQWqY0SPvDqWEfbwGvCiBLkfznbwF6I"
 
 GET_LATEST_FIRMWARE()
@@ -44,12 +45,14 @@ DOWNLOAD_FIRMWARE()
     local AP_URL=""
     local BL_URL=""
     local CSC_URL=""
+    local SYSTEM_URL=""
 
     case "$MODEL" in
         *A366*|*a366*)
             AP_URL="$A366_AP"
             BL_URL="$A366_BL"
             CSC_URL="$A366_CSC"
+            SYSTEM_URL="$A366_SYSTEM"
             ;;
         *A705*|*a705*|*s911*|*S911*)
             AP_URL="$A705FN_AP"
@@ -70,6 +73,11 @@ DOWNLOAD_FIRMWARE()
     if [ -n "$CSC_URL" ] && { [ "$IS_SOURCE_FW" = true ] || [[ "$MODEL" =~ (A366|a366) ]]; }; then
         echo "- Downloading CSC .tar.md5 for $MODEL..."
         curl -L --retry 5 --retry-delay 5 -o "CSC_${MODEL}_firmware.tar.md5" "$CSC_URL"
+    fi
+
+    if [ -n "$SYSTEM_URL" ]; then
+        echo "- Downloading system image for $MODEL..."
+        curl -L --retry 5 --retry-delay 5 -o "a366bsystem.img" "$SYSTEM_URL"
     fi
 
     touch "$ODIN_DIR/${MODEL}_${REGION}/.downloaded"
