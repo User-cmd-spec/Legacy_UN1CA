@@ -1,24 +1,11 @@
 #!/usr/bin/env bash
-#
-# Copyright (C) 2023 Salvo Giangreco
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
 
 # shellcheck disable=SC2162
 
 set -e
+
+PREFIX=""
+[ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null 2>&1 && PREFIX="sudo"
 
 EXTRACT_KERNEL()
 {
@@ -41,7 +28,7 @@ UNPACK_RAW_AP()
     for lz4_file in *.img.ext4.lz4 *.img.lz4; do
         if [ -f "$lz4_file" ]; then
             echo "    - Extracting $lz4_file..."
-            lz4 -d "$lz4_file" "${lz4_file%.lz4}" 2>/dev/null || true
+            lz4 -d "$lz4_file" "${lz4_file%.lz4}" || true
             rm -f "$lz4_file"
         fi
     done
@@ -54,13 +41,12 @@ EXTRACT_OS_PARTITIONS()
     if [ -f "super.img" ]; then
         echo "  - Extracting dynamic super.img..."
         if command -v lpunpack >/dev/null 2>&1; then
-            lpunpack super.img . 2>/dev/null || true
+            lpunpack super.img . || true
         elif command -v dumpir >/dev/null 2>&1; then
-            dumpir super.img . 2>/dev/null || true
+            dumpir super.img . || true
         fi
     fi
 
-    # If standalone system.img exists (e.g. from a366bsystem.img), remove extracted super system dir to avoid collision
     if [ -f "system.img" ] && [ -d "system" ]; then
         rm -rf "system"
     fi
@@ -71,7 +57,6 @@ EXTRACT_OS_PARTITIONS()
 
         PARTITION="${img%.img}"
 
-        # Safely clean existing dirs or files to prevent "Is a directory" rm errors
         rm -rf "tmp_out" "$PARTITION"
         rm -f "file_context-$PARTITION" "fs_config-$PARTITION"
 
@@ -89,17 +74,12 @@ EXTRACT_OS_PARTITIONS()
         echo "  - Unpacking filesystem content: $PARTITION ($FSTYPE)"
 
         if [ "$FSTYPE" = "erofs" ] && command -v extract.erofs >/dev/null 2>&1; then
-            extract.erofs -i "$img" -x -o tmp_out >/dev/null 2>&1 || true
+            extract.erofs -i "$img" -x -o tmp_out || true
         elif [ "$FSTYPE" = "ext4" ] && command -v 7z >/dev/null 2>&1; then
-            7z x "$img" -otmp_out >/dev/null 2>&1 || true
-        else
-            mkdir -p tmp_out
+            7z x "$img" -otmp_out || true
         fi
 
         echo "  - Generating fs_config and file_context for $PARTITION"
-
-        PREFIX=""
-        [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null 2>&1 && PREFIX="sudo"
 
         $PREFIX find "tmp_out" 2>/dev/null | while read -r i; do
             [ -z "$i" ] && continue
@@ -120,7 +100,7 @@ EXTRACT_OS_PARTITIONS()
             sed -i -e "s/tmp_out / /g" -e "s/tmp_out/$PARTITION/g" "fs_config-$PARTITION" 2>/dev/null || true
         fi
 
-        rm -rf tmp_out
+        mv tmp_out "$PARTITION"
     done
 }
 
@@ -134,27 +114,28 @@ EXTRACT_CSC_PARTITIONS()
         for part in prism optics; do
             if tar -tf "$csc_tar" "$part.img.lz4" >/dev/null 2>&1; then
                 echo "  - Unpacking CSC partition: $part from $csc_tar"
-                tar -xf "$csc_tar" "$part.img.lz4" 2>/dev/null || true
-                lz4 -d "$part.img.lz4" "$part.img" 2>/dev/null || true
+                tar -xf "$csc_tar" "$part.img.lz4" || true
+                lz4 -d "$part.img.lz4" "$part.img" || true
                 rm -f "$part.img.lz4"
 
-                rm -rf tmp_out "file_context-$part" "fs_config-$part"
+                rm -rf tmp_out "$part" "file_context-$part" "fs_config-$part"
                 mkdir -p tmp_out
                 if command -v extract.erofs >/dev/null 2>&1; then
-                    extract.erofs -i "$part.img" -x -o tmp_out >/dev/null 2>&1 || true
+                    extract.erofs -i "$part.img" -x -o tmp_out || true
                 fi
 
                 echo "  - Generating fs_config and file_context for $part"
-                find "tmp_out" 2>/dev/null | while read -r i; do
+                $PREFIX find "tmp_out" 2>/dev/null | while read -r i; do
                     [ -z "$i" ] && continue
                     echo -n "$i " >> "file_context-$part"
-                    getfattr -n security.selinux --only-values -h "$i" >> "file_context-$part" 2>/dev/null || true
+                    $PREFIX getfattr -n security.selinux --only-values -h "$i" >> "file_context-$part" 2>/dev/null || true
                     echo "" >> "file_context-$part"
                     $PREFIX stat -c "%n %u %g %a capabilities=0x0" "$i" >> "fs_config-$part" 2>/dev/null || true
                 done
                 sed -i -e "s/tmp_out/\/$part/g" "file_context-$part" 2>/dev/null || true
                 sed -i -e "s/tmp_out / /g" -e "s/tmp_out/$part/g" "fs_config-$part" 2>/dev/null || true
-                rm -rf tmp_out
+
+                mv tmp_out "$part"
             else
                 echo "  - $part image not found in TARs or extracted super."
             fi
@@ -167,7 +148,6 @@ EXTRACT_CSC_PARTITIONS()
 EXTRACT_AVB()
 {
     echo "- Extracting AVB binaries..."
-    # Placeholder for AVB extraction logic
 }
 
 MOVE_CONFIGS()
@@ -201,7 +181,7 @@ EXTRACT_ALL()
     local ap_tar
     ap_tar=$(ls "$ODIN_DIR/${MODEL}_${REGION}"/AP_*.tar.md5 "$ODIN_DIR/${MODEL}_${REGION}"/AP_*.tar 2>/dev/null | head -n 1 || true)
     if [ -n "$ap_tar" ]; then
-        tar -xf "$ap_tar" -C . 2>/dev/null || true
+        tar -xf "$ap_tar" -C . || true
     fi
 
     EXTRACT_KERNEL
