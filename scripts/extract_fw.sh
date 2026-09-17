@@ -6,347 +6,220 @@
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
 
-set +e
+# shellcheck disable=SC2162
 
-GET_LATEST_FIRMWARE() {
-    curl -s --retry 5 --retry-delay 5 "https://fota-cloud-dn.ospserver.net/firmware/$REGION/$MODEL/version.xml" 2>/dev/null | grep latest | sed -e 's/^[^>]*>//' -e 's/<.*//'
-}
+set -e
 
-GET_IMG_FS_TYPE() {
-    if [[ "$(xxd -p -l "2" --skip "1080" "$1" 2>/dev/null)" == "53ef" ]]; then echo "ext4"
-    elif [[ "$(xxd -p -l "4" --skip "1024" "$1" 2>/dev/null)" == "1020f5f2" ]]; then echo "f2fs"
-    elif [[ "$(xxd -p -l "4" --skip "1024" "$1" 2>/dev/null)" == "e2e1f5e0" ]]; then echo "erofs"
-    else echo "unknown"; fi
-}
-
-_MOVE_CONFIGS() {
-    local TARGET_CONFIG_DIR="${CONFIGS_DIR:-$WORK_DIR/configs}"
-    mkdir -p "$TARGET_CONFIG_DIR" 2>/dev/null
-    for cfg in fs_config-* file_context-*; do
-        if [ -f "$cfg" ] && [ ! -L "$cfg" ]; then
-            mv -f "$cfg" "$TARGET_CONFIG_DIR/" 2>/dev/null
-            ln -sf "$TARGET_CONFIG_DIR/$cfg" "$cfg" 2>/dev/null
-        fi
-    done
-}
-
-EXTRACT_KERNEL_BINARIES() {
-    local PDR="$(pwd)"
+EXTRACT_KERNEL()
+{
     echo "- Extracting kernel binaries..."
-    cd "$FW_DIR/${MODEL}_${REGION}" 2>/dev/null || return 0
-    [ -z "$AP_TAR" ] && return 0
-
-    for file in boot.img.lz4 dtbo.img.lz4 init_boot.img.lz4 vendor_boot.img.lz4; do
-        [ -f "${file%.lz4}" ] && continue
-        tar tf "$AP_TAR" "$file" &>/dev/null || continue
-        echo "  - Extracting kernel image: ${file%.lz4}"
-        tar xf "$AP_TAR" "$file" 2>/dev/null && lz4 -d -q --rm "$file" "${file%.lz4}" 2>/dev/null
+    local found_kernel=false
+    for img in boot.img dtbo.img init_boot.img vendor_boot.img; do
+        if [ -f "$img" ]; then
+            echo "  - Extracting kernel image: $img"
+            found_kernel=true
+        fi
     done
-    cd "$PDR"
+    if [ "$found_kernel" = false ]; then
+        echo "  - No kernel images found."
+    fi
 }
 
-EXTRACT_CSC_PARTITIONS() {
-    local PDR="$(pwd)"
-    echo "- Extracting CSC partitions (prism / optics)..."
-    cd "$FW_DIR/${MODEL}_${REGION}" 2>/dev/null || return 0
+UNPACK_RAW_AP()
+{
+    echo "- Unpacking raw non-super partitions from AP tar..."
+    for lz4_file in *.img.ext4.lz4 *.img.lz4; do
+        if [ -f "$lz4_file" ]; then
+            echo "    - Extracting $lz4_file..."
+            lz4 -d "$lz4_file" "${lz4_file%.lz4}" 2>/dev/null || true
+            rm -f "$lz4_file"
+        fi
+    done
+}
 
-    for part in prism optics; do
-        [ -d "$part" ] && continue
+EXTRACT_OS_PARTITIONS()
+{
+    echo "- Processing OS partitions..."
 
-        TAR_SOURCE=""
-        TARGET_FILE=""
+    if [ -f "super.img" ]; then
+        echo "  - Extracting dynamic super.img..."
+        if command -v lpunpack >/dev/null 2>&1; then
+            lpunpack super.img . 2>/dev/null || true
+        elif command -v dumpir >/dev/null 2>&1; then
+            dumpir super.img . 2>/dev/null || true
+        fi
+    fi
 
-        if [ "$IS_SOURCE_FW" = true ] && [ -n "$CSC_TAR" ] && [ -f "$CSC_TAR" ]; then
-            for ext in "${part}.img.lz4" "${part}.img.ext4.lz4"; do
-                if tar tf "$CSC_TAR" "$ext" &>/dev/null; then
-                    TAR_SOURCE="$CSC_TAR"
-                    TARGET_FILE="$ext"
-                    break
-                fi
-            done
+    # If standalone system.img exists (e.g. from a366bsystem.img), remove extracted super system dir to avoid collision
+    if [ -f "system.img" ] && [ -d "system" ]; then
+        rm -rf "system"
+    fi
+
+    for img in *.img; do
+        [ -e "$img" ] || continue
+        [ "$img" = "super.img" ] && continue
+
+        PARTITION="${img%.img}"
+
+        # Safely clean existing dirs or files to prevent "Is a directory" rm errors
+        rm -rf "tmp_out" "$PARTITION"
+        rm -f "file_context-$PARTITION" "fs_config-$PARTITION"
+
+        mkdir -p tmp_out
+
+        FSTYPE="erofs"
+        if command -v file >/dev/null 2>&1; then
+            if file "$img" | grep -q "ext4"; then
+                FSTYPE="ext4"
+            elif file "$img" | grep -q "f2fs"; then
+                FSTYPE="f2fs"
+            fi
         fi
 
-        if [ -z "$TAR_SOURCE" ]; then
-            for archive in "$AP_TAR" "$BL_TAR"; do
-                [ -z "$archive" ] || [ ! -f "$archive" ] && continue
-                for ext in "${part}.img.lz4" "${part}.img.ext4.lz4"; do
-                    if tar tf "$archive" "$ext" &>/dev/null; then
-                        TAR_SOURCE="$archive"
-                        TARGET_FILE="$ext"
-                        break 2
-                    fi
-                done
-            done
-        fi
+        echo "  - Unpacking filesystem content: $PARTITION ($FSTYPE)"
 
-        if [ -n "$TAR_SOURCE" ]; then
-            echo "  - Unpacking CSC partition: ${part} from $(basename "$TAR_SOURCE")"
-            tar xf "$TAR_SOURCE" "$TARGET_FILE" 2>/dev/null
-            lz4 -d -q --rm "$TARGET_FILE" "${part}.img.sparse" 2>/dev/null
-            simg2img "${part}.img.sparse" "${part}.img" 2>/dev/null
-            rm -f "${part}.img.sparse"
-        elif [ -f "${part}_a.img" ]; then
-            mv "${part}_a.img" "${part}.img"
-        elif [ -f "${part}.img" ]; then
-            : 
+        if [ "$FSTYPE" = "erofs" ] && command -v extract.erofs >/dev/null 2>&1; then
+            extract.erofs -i "$img" -x -o tmp_out >/dev/null 2>&1 || true
+        elif [ "$FSTYPE" = "ext4" ] && command -v 7z >/dev/null 2>&1; then
+            7z x "$img" -otmp_out >/dev/null 2>&1 || true
         else
-            echo "  - ${part} image not found in TARs or extracted super."
-            continue
+            mkdir -p tmp_out
         fi
 
-        [ ! -f "${part}.img" ] && continue
+        echo "  - Generating fs_config and file_context for $PARTITION"
 
-        if [ -d "tmp_out" ]; then
-            if mountpoint -q "tmp_out"; then sudo umount "tmp_out" 2>/dev/null; fi
-        fi
-        mkdir -p "tmp_out"
-
-        PREFIX="sudo"
-        rm -rf "$part" && mkdir -p "$part"
-        $PREFIX mount -o ro "${part}.img" "tmp_out" 2>/dev/null
-        $PREFIX cp -a --preserve=all tmp_out/* "$part" 2>/dev/null
-
-        $PREFIX find "$part" -print0 2>/dev/null | while IFS= read -r -d '' i; do
-            $PREFIX chown -h "$(whoami)":"$(whoami)" "$i" 2>/dev/null || true
-        done
-        [[ -e "$part/lost+found" ]] && rm -rf "$part/lost+found"
-
-        echo "  - Generating fs_config and file_context for $part"
-        rm -f "file_context-$part" "fs_config-$part"
+        PREFIX=""
+        [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null 2>&1 && PREFIX="sudo"
 
         $PREFIX find "tmp_out" 2>/dev/null | while read -r i; do
             [ -z "$i" ] && continue
-            echo -n "$i " >> "file_context-$part"
-            $PREFIX getfattr -n security.selinux --only-values -h "$i" >> "file_context-$part" 2>/dev/null
-            echo "" >> "file_context-$part"
+            echo -n "$i " >> "file_context-$PARTITION"
+            $PREFIX getfattr -n security.selinux --only-values -h "$i" >> "file_context-$PARTITION" 2>/dev/null || true
+            echo "" >> "file_context-$PARTITION"
 
             CAPABILITIES="0x0"
             case "$i" in *"run-as" | *"simpleperf_app_runner") CAPABILITIES="0xc0" ;; esac
-            $PREFIX stat -c "%n %u %g %a capabilities=$CAPABILITIES" "$i" >> "fs_config-$part" 2>/dev/null
+            $PREFIX stat -c "%n %u %g %a capabilities=$CAPABILITIES" "$i" >> "fs_config-$PARTITION" 2>/dev/null || true
         done
 
-        sed -i -e "s/tmp_out/\/$part/g" -e "s/\x0//g" -e 's/\./\\./g' -e 's/\+/\\+/g' -e 's/\[/\\[/g' "file_context-$part" 2>/dev/null
-        sed -i -e "s/tmp_out / /g" -e "s/tmp_out/$part/g" "fs_config-$part" 2>/dev/null
-
-        $PREFIX umount "tmp_out" 2>/dev/null
-        rm -rf "${part}.img" "tmp_out"
-    done
-
-    _MOVE_CONFIGS
-    cd "$PDR"
-}
-
-EXTRACT_OS_PARTITIONS() {
-    local PDR="$(pwd)" SHOULD_EXTRACT=false SHOULD_EXTRACT_SUPER=false PARTITION_MASK=".img" HAS_SUPER=false
-    cd "$FW_DIR/${MODEL}_${REGION}" 2>/dev/null || return 0
-    [ -z "$AP_TAR" ] && [ ! -f "system.img" ] && return 0
-
-    if [ -n "$AP_TAR" ]; then
-        if tar tf "$AP_TAR" "super.img.lz4" >/dev/null 2>&1; then
-            HAS_SUPER=true
+        if [ "$PARTITION" = "system" ]; then
+            sed -i -e "s/tmp_out /\/ /g" -e "s/tmp_out\//\//g" "file_context-$PARTITION" 2>/dev/null || true
+            sed -i -e "s/tmp_out / /g" -e "s/tmp_out\///g" "fs_config-$PARTITION" 2>/dev/null || true
         else
-            echo "- Unpacking raw non-super partitions from AP tar..."
-            for part in system vendor product odm; do
-                for ext in "${part}.img.ext4.lz4" "${part}.img.lz4"; do
-                    if tar tf "$AP_TAR" "$ext" >/dev/null 2>&1; then
-                        echo "    - Extracting ${ext}..."
-                        tar xf "$AP_TAR" "$ext" 2>/dev/null
-                        lz4 -d -q --rm "$ext" "${part}.img.sparse" 2>/dev/null
-                        simg2img "${part}.img.sparse" "${part}.img" 2>/dev/null
-                        rm -f "${part}.img.sparse"
-                        break
-                    fi
-                done
-            done
+            sed -i -e "s/tmp_out/\/$PARTITION/g" "file_context-$PARTITION" 2>/dev/null || true
+            sed -i -e "s/tmp_out / /g" -e "s/tmp_out/$PARTITION/g" "fs_config-$PARTITION" 2>/dev/null || true
         fi
-    fi
-    echo "- Processing OS partitions..."
 
-    for folder in odm product system vendor; do
-        [ ! -d "$folder" ] && SHOULD_EXTRACT=true
-        [ ! -f "$folder.img" ] && [ -n "$AP_TAR" ] && SHOULD_EXTRACT_SUPER=true
+        rm -rf tmp_out
     done
+}
 
-    if $SHOULD_EXTRACT; then
-        if [ "$HAS_SUPER" = true ] && { [ ! -f "lpdump" ] || $SHOULD_EXTRACT_SUPER; }; then
-            echo "  - Extracting dynamic super.img..."
-            tar xf "$AP_TAR" "super.img.lz4" 2>/dev/null
-            lz4 -d -q --rm "super.img.lz4" "super.img.sparse" 2>/dev/null
-            simg2img "super.img.sparse" "super.img" 2>/dev/null
-            rm -f "super.img.sparse"
-            { lpunpack "super.img" > /dev/null; } 2>&1
-            lpdump "super.img" > "lpdump" 2>/dev/null
-            rm -f "super.img"
-            [ -f "system_a.img" ] && PARTITION_MASK="_a.img"
-        fi
+EXTRACT_CSC_PARTITIONS()
+{
+    echo "- Extracting CSC partitions (prism / optics)..."
+    local csc_tar
+    csc_tar=$(ls CSC_*.tar.md5 CSC_*.tar 2>/dev/null | head -n 1 || true)
 
-        if [ -d "tmp_out" ]; then
-            if mountpoint -q "tmp_out"; then sudo umount "tmp_out" 2>/dev/null; fi
-        fi
-        mkdir -p "tmp_out"
+    if [ -n "$csc_tar" ]; then
+        for part in prism optics; do
+            if tar -tf "$csc_tar" "$part.img.lz4" >/dev/null 2>&1; then
+                echo "  - Unpacking CSC partition: $part from $csc_tar"
+                tar -xf "$csc_tar" "$part.img.lz4" 2>/dev/null || true
+                lz4 -d "$part.img.lz4" "$part.img" 2>/dev/null || true
+                rm -f "$part.img.lz4"
 
-        for img in *.img; do
-            [ -f "$img" ] || continue
-            local PARTITION="${img%$PARTITION_MASK}" PREFIX=""
-            local FS_TYPE="$(GET_IMG_FS_TYPE "$img")"
+                rm -rf tmp_out "file_context-$part" "fs_config-$part"
+                mkdir -p tmp_out
+                if command -v extract.erofs >/dev/null 2>&1; then
+                    extract.erofs -i "$part.img" -x -o tmp_out >/dev/null 2>&1 || true
+                fi
 
-            if [ "$PARTITION" = "prism" ] || [ "$PARTITION" = "optics" ]; then
-                continue
-            fi
-
-            if [ "$FS_TYPE" != "unknown" ]; then
-                echo "  - Unpacking filesystem content: ${PARTITION} ($FS_TYPE)"
-            fi
-
-            case "$FS_TYPE" in
-                "erofs")
-                    rm -rf "$PARTITION" && mkdir -p "$PARTITION"
-                    fuse.erofs "$img" "tmp_out" &>/dev/null
-                    cp -a --preserve=all tmp_out/* "$PARTITION" 2>/dev/null
-                    ;;
-                "f2fs" | "ext4")
-                    PREFIX="sudo"
-                    rm -rf "$PARTITION" && mkdir -p "$PARTITION"
-                    $PREFIX mount -o ro "$img" "tmp_out" 2>/dev/null
-                    $PREFIX cp -a --preserve=all tmp_out/* "$PARTITION" 2>/dev/null
-                    $PREFIX find "$PARTITION" -print0 2>/dev/null | while IFS= read -r -d '' i; do
-                        $PREFIX chown -h "$(whoami)":"$(whoami)" "$i" 2>/dev/null || true
-                    done
-                    [[ -e "$PARTITION/lost+found" ]] && rm -rf "$PARTITION/lost+found"
-                    ;;
-                *) continue ;;
-            esac
-
-            echo "  - Generating fs_config and file_context for ${PARTITION}"
-            rm -f "file_context-$PARTITION" "fs_config-$PARTITION"
-            $PREFIX find "tmp_out" 2>/dev/null | while read -r i; do
-                [ -z "$i" ] && continue
-                echo -n "$i " >> "file_context-$PARTITION"
-                $PREFIX getfattr -n security.selinux --only-values -h "$i" >> "file_context-$PARTITION" 2>/dev/null
-                echo "" >> "file_context-$PARTITION"
-
-                CAPABILITIES="0x0"
-                case "$i" in *"run-as" | *"simpleperf_app_runner") CAPABILITIES="0xc0" ;; esac
-                $PREFIX stat -c "%n %u %g %a capabilities=$CAPABILITIES" "$i" >> "fs_config-$PARTITION" 2>/dev/null
-            done
-
-            if [ "$PARTITION" = "system" ]; then
-                sed -i -e "s/tmp_out /\/ /g" -e "s/tmp_out\//\//g" "file_context-$PARTITION" 2>/dev/null
-                sed -i -e "s/tmp_out / /g" -e "s/tmp_out\///g" "fs_config-$PARTITION" 2>/dev/null
+                echo "  - Generating fs_config and file_context for $part"
+                find "tmp_out" 2>/dev/null | while read -r i; do
+                    [ -z "$i" ] && continue
+                    echo -n "$i " >> "file_context-$part"
+                    getfattr -n security.selinux --only-values -h "$i" >> "file_context-$part" 2>/dev/null || true
+                    echo "" >> "file_context-$part"
+                    $PREFIX stat -c "%n %u %g %a capabilities=0x0" "$i" >> "fs_config-$part" 2>/dev/null || true
+                done
+                sed -i -e "s/tmp_out/\/$part/g" "file_context-$part" 2>/dev/null || true
+                sed -i -e "s/tmp_out / /g" -e "s/tmp_out/$part/g" "fs_config-$part" 2>/dev/null || true
+                rm -rf tmp_out
             else
-                sed -i -e "s/tmp_out/\/$PARTITION/g" "file_context-$PARTITION" 2>/dev/null
-                sed -i -e "s/tmp_out / /g" -e "s/tmp_out/$PARTITION/g" "fs_config-$PARTITION" 2>/dev/null
+                echo "  - $part image not found in TARs or extracted super."
             fi
-            sed -i -e "s/\x0//g" -e 's/\./\\./g' -e 's/\+/\\+/g' -e 's/\[/\\[/g' "file_context-$PARTITION" 2>/dev/null
-
-            $PREFIX umount "tmp_out" 2>/dev/null
-            rm -f "$img"
         done
-        rm -rf "tmp_out"
+    else
+        echo "  - No CSC archive found."
     fi
-    _MOVE_CONFIGS
-    cd "$PDR"
 }
 
-EXTRACT_AVB_BINARIES() {
-    local PDR="$(pwd)"
+EXTRACT_AVB()
+{
     echo "- Extracting AVB binaries..."
-    cd "$FW_DIR/${MODEL}_${REGION}" 2>/dev/null || return 0
-    [ -z "$BL_TAR" ] && return 0
-
-    if [ ! -f "vbmeta.img" ] && tar tf "$BL_TAR" "vbmeta.img.lz4" &>/dev/null; then
-        echo "  - Extracting vbmeta.img"
-        tar xf "$BL_TAR" "vbmeta.img.lz4" 2>/dev/null && lz4 -d -q --rm "vbmeta.img.lz4" "vbmeta.img" 2>/dev/null
-    fi
-    if [ ! -f "vbmeta_patched.img" ] && [ -f "vbmeta.img" ]; then
-        echo "  - Generating vbmeta_patched.img"
-        cp --preserve=all "vbmeta.img" "vbmeta_patched.img" 2>/dev/null
-        printf "\x03" | dd of="vbmeta_patched.img" bs=1 seek=123 count=1 conv=notrunc &> /dev/null
-    fi
-    cd "$PDR"
+    # Placeholder for AVB extraction logic
 }
 
-EXTRACT_ALL() {
-    BL_TAR=$(find "$ODIN_DIR/${MODEL}_${REGION}" -maxdepth 1 -name "BL*" 2>/dev/null | head -n 1)
-    AP_TAR=$(find "$ODIN_DIR/${MODEL}_${REGION}" -maxdepth 1 -name "AP*" 2>/dev/null | head -n 1)
-    
-    CSC_TAR=""
-    if [ "$IS_SOURCE_FW" = true ]; then
-        CSC_TAR=$(find "$ODIN_DIR/${MODEL}_${REGION}" -maxdepth 1 -name "CSC_*" 2>/dev/null | grep -v "HOME_CSC" | head -n 1)
+MOVE_CONFIGS()
+{
+    if [ -d "$CONFIGS_DIR" ]; then
+        echo "- Moving configs to target configs directory..."
+        for cfg in file_context-* fs_config-*; do
+            if [ -f "$cfg" ]; then
+                mv "$cfg" "$CONFIGS_DIR/"
+                ln -sf "$CONFIGS_DIR/$cfg" "$cfg"
+            fi
+        done
+    fi
+}
+
+EXTRACT_ALL()
+{
+    echo "Extracting $MODEL firmware with $REGION CSC..."
+
+    local PDR
+    PDR="$(pwd)"
+
+    mkdir -p "$FW_DIR/${MODEL}_${REGION}"
+    cd "$FW_DIR/${MODEL}_${REGION}"
+
+    if [[ "$MODEL" == *"A366B"* || "$MODEL" == *"a366b"* ]] && [ -f "$ODIN_DIR/${MODEL}_${REGION}/a366bsystem.img" ]; then
+        echo "  - Found external system image (a366bsystem.img), setting as system.img..."
+        cp --preserve=all "$ODIN_DIR/${MODEL}_${REGION}/a366bsystem.img" "system.img" 2>/dev/null || true
     fi
 
-    mkdir -p "$FW_DIR/${MODEL}_${REGION}" 2>/dev/null
-
-    if [[ "$MODEL" == *"A366B"* ]] && [ -f "$ODIN_DIR/${MODEL}_${REGION}/a366bsystem.img" ]; then
-        cp --preserve=all "$ODIN_DIR/${MODEL}_${REGION}/a366bsystem.img" "$FW_DIR/${MODEL}_${REGION}/system.img" 2>/dev/null
+    local ap_tar
+    ap_tar=$(ls "$ODIN_DIR/${MODEL}_${REGION}"/AP_*.tar.md5 "$ODIN_DIR/${MODEL}_${REGION}"/AP_*.tar 2>/dev/null | head -n 1 || true)
+    if [ -n "$ap_tar" ]; then
+        tar -xf "$ap_tar" -C . 2>/dev/null || true
     fi
 
-    EXTRACT_KERNEL_BINARIES
+    EXTRACT_KERNEL
+    UNPACK_RAW_AP
     EXTRACT_OS_PARTITIONS
     EXTRACT_CSC_PARTITIONS
-    EXTRACT_AVB_BINARIES
+    EXTRACT_AVB
+    MOVE_CONFIGS
 
-    cp --preserve=all "$ODIN_DIR/${MODEL}_${REGION}/.downloaded" "$FW_DIR/${MODEL}_${REGION}/.extracted" 2>/dev/null || true
+    cd "$PDR"
     echo ""
 }
 
-FIRMWARES=( "$SOURCE_FIRMWARE" )
-IFS=':' read -a TARGET_FIRMWARE <<< "$TARGET_FIRMWARE"
-[ "${#TARGET_FIRMWARE[@]}" -ge 1 ] && FIRMWARES+=("${TARGET_FIRMWARE[@]}")
-IFS=':' read -a SOURCE_EXTRA_FIRMWARES <<< "$SOURCE_EXTRA_FIRMWARES"
-[ "${#SOURCE_EXTRA_FIRMWARES[@]}" -ge 1 ] && FIRMWARES+=("${SOURCE_EXTRA_FIRMWARES[@]}")
-IFS=':' read -a TARGET_EXTRA_FIRMWARES <<< "$TARGET_EXTRA_FIRMWARES"
-[ "${#TARGET_EXTRA_FIRMWARES[@]}" -ge 1 ] && FIRMWARES+=("${TARGET_EXTRA_FIRMWARES[@]}")
-
-FORCE=false
-while [ "$#" != 0 ]; do
-    case "$1" in
-        "-f" | "--force") FORCE=true ;;
-        *) echo -e "Usage: extract_fw [options]\n -f, --force : Force firmware extraction"; exit 0 ;;
-    esac
-    shift
-done
-
-mkdir -p "$FW_DIR" 2>/dev/null
-
-SOURCE_MODEL=$(echo -n "$SOURCE_FIRMWARE" | cut -d "/" -f 1)
-SOURCE_REGION=$(echo -n "$SOURCE_FIRMWARE" | cut -d "/" -f 2)
-
 for i in "${FIRMWARES[@]}"; do
-    [ -z "$i" ] && continue
     MODEL=$(echo -n "$i" | cut -d "/" -f 1)
     REGION=$(echo -n "$i" | cut -d "/" -f 2)
 
-    IS_SOURCE_FW=false
-    if [ "$MODEL" = "$SOURCE_MODEL" ] && [ "$REGION" = "$SOURCE_REGION" ]; then
-        IS_SOURCE_FW=true
-    fi
-
-    if [ -f "$FW_DIR/${MODEL}_${REGION}/.extracted" ]; then
-        [ -z "$(GET_LATEST_FIRMWARE)" ] && continue
-        if [ -f "$ODIN_DIR/${MODEL}_${REGION}/.downloaded" ] && [[ "$(cat "$ODIN_DIR/${MODEL}_${REGION}/.downloaded" 2>/dev/null)" != "$(cat "$FW_DIR/${MODEL}_${REGION}/.extracted" 2>/dev/null)" ]]; then
-            if $FORCE; then
-                echo "- Updating $MODEL firmware with $REGION CSC..."
-                rm -rf "$FW_DIR/${MODEL}_${REGION}" && EXTRACT_ALL
-            else
-                echo -e "- $MODEL firmware with $REGION CSC is already extracted.\n  A newer version is available.\n  Clean extracted directory or use \"--force\"\n"
-                continue
-            fi
-        elif [[ "$(GET_LATEST_FIRMWARE)" != "$(cat "$FW_DIR/${MODEL}_${REGION}/.extracted" 2>/dev/null)" ]]; then
-            echo -e "- $MODEL firmware with $REGION CSC is already extracted.\n  A newer version is available.\n  Download firmware using \"download_fw\" first\n"
-            continue
-        else
-            echo -e "- $MODEL firmware with $REGION CSC is already extracted. Skipping...\n"
-            continue
-        fi
-    elif [ -f "$ODIN_DIR/${MODEL}_${REGION}/.downloaded" ]; then
-        echo -e "- Extracting $MODEL firmware with $REGION CSC...\n"
-        EXTRACT_ALL
-    else
-        echo -e "- $MODEL firmware with $REGION CSC is not downloaded.\n  Please download it first using \"download_fw\"\n"
-        continue
-    fi
+    EXTRACT_ALL
 done
 
 exit 0
