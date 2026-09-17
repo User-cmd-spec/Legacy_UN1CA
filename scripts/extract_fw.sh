@@ -39,6 +39,13 @@ EXTRACT_OS_PARTITIONS()
     echo "- Processing OS partitions..."
 
     if [ -f "super.img" ]; then
+        if command -v simg2img >/dev/null 2>&1; then
+            if file super.img 2>/dev/null | grep -q "Android sparse"; then
+                echo "  - Converting sparse super.img to raw..."
+                simg2img super.img super.raw.img && mv super.raw.img super.img
+            fi
+        fi
+
         echo "  - Extracting dynamic super.img..."
         if command -v lpunpack >/dev/null 2>&1; then
             lpunpack super.img . || true
@@ -73,10 +80,22 @@ EXTRACT_OS_PARTITIONS()
 
         echo "  - Unpacking filesystem content: $PARTITION ($FSTYPE)"
 
-        if [ "$FSTYPE" = "erofs" ] && command -v extract.erofs >/dev/null 2>&1; then
-            extract.erofs -i "$img" -x -o tmp_out || true
+        if [ "$FSTYPE" = "erofs" ]; then
+            if command -v extract.erofs >/dev/null 2>&1; then
+                extract.erofs -i "$img" -x -o tmp_out || true
+            elif command -v fsck.erofs >/dev/null 2>&1; then
+                fsck.erofs --extract=tmp_out "$img" || true
+            elif command -v 7z >/dev/null 2>&1; then
+                7z x "$img" -otmp_out || true
+            fi
         elif [ "$FSTYPE" = "ext4" ] && command -v 7z >/dev/null 2>&1; then
             7z x "$img" -otmp_out || true
+        fi
+
+        if [ -z "$(ls -A tmp_out 2>/dev/null)" ]; then
+            echo "  ! WARNING: Failed to extract $PARTITION ($FSTYPE) or directory is empty."
+            rm -rf tmp_out
+            continue
         fi
 
         echo "  - Generating fs_config and file_context for $PARTITION"
@@ -92,12 +111,20 @@ EXTRACT_OS_PARTITIONS()
             $PREFIX stat -c "%n %u %g %a capabilities=$CAPABILITIES" "$i" >> "fs_config-$PARTITION" 2>/dev/null || true
         done
 
-        if [ "$PARTITION" = "system" ]; then
-            sed -i -e "s/tmp_out /\/ /g" -e "s/tmp_out\//\//g" "file_context-$PARTITION" 2>/dev/null || true
-            sed -i -e "s/tmp_out / /g" -e "s/tmp_out\///g" "fs_config-$PARTITION" 2>/dev/null || true
-        else
-            sed -i -e "s/tmp_out/\/$PARTITION/g" "file_context-$PARTITION" 2>/dev/null || true
-            sed -i -e "s/tmp_out / /g" -e "s/tmp_out/$PARTITION/g" "fs_config-$PARTITION" 2>/dev/null || true
+        if [ -f "file_context-$PARTITION" ]; then
+            if [ "$PARTITION" = "system" ]; then
+                sed -i -e "s/tmp_out /\/ /g" -e "s/tmp_out\//\//g" "file_context-$PARTITION" 2>/dev/null || true
+            else
+                sed -i -e "s/tmp_out/\/$PARTITION/g" "file_context-$PARTITION" 2>/dev/null || true
+            fi
+        fi
+
+        if [ -f "fs_config-$PARTITION" ]; then
+            if [ "$PARTITION" = "system" ]; then
+                sed -i -e "s/tmp_out / /g" -e "s/tmp_out\///g" "fs_config-$PARTITION" 2>/dev/null || true
+            else
+                sed -i -e "s/tmp_out / /g" -e "s/tmp_out/$PARTITION/g" "fs_config-$PARTITION" 2>/dev/null || true
+            fi
         fi
 
         mv tmp_out "$PARTITION"
@@ -120,8 +147,19 @@ EXTRACT_CSC_PARTITIONS()
 
                 rm -rf tmp_out "$part" "file_context-$part" "fs_config-$part"
                 mkdir -p tmp_out
+
                 if command -v extract.erofs >/dev/null 2>&1; then
                     extract.erofs -i "$part.img" -x -o tmp_out || true
+                elif command -v fsck.erofs >/dev/null 2>&1; then
+                    fsck.erofs --extract=tmp_out "$part.img" || true
+                elif command -v 7z >/dev/null 2>&1; then
+                    7z x "$part.img" -otmp_out || true
+                fi
+
+                if [ -z "$(ls -A tmp_out 2>/dev/null)" ]; then
+                    echo "  ! WARNING: Failed to extract $part or directory is empty."
+                    rm -rf tmp_out
+                    continue
                 fi
 
                 echo "  - Generating fs_config and file_context for $part"
@@ -132,8 +170,13 @@ EXTRACT_CSC_PARTITIONS()
                     echo "" >> "file_context-$part"
                     $PREFIX stat -c "%n %u %g %a capabilities=0x0" "$i" >> "fs_config-$part" 2>/dev/null || true
                 done
-                sed -i -e "s/tmp_out/\/$part/g" "file_context-$part" 2>/dev/null || true
-                sed -i -e "s/tmp_out / /g" -e "s/tmp_out/$part/g" "fs_config-$part" 2>/dev/null || true
+
+                if [ -f "file_context-$part" ]; then
+                    sed -i -e "s/tmp_out/\/$part/g" "file_context-$part" 2>/dev/null || true
+                fi
+                if [ -f "fs_config-$part" ]; then
+                    sed -i -e "s/tmp_out / /g" -e "s/tmp_out/$part/g" "fs_config-$part" 2>/dev/null || true
+                fi
 
                 mv tmp_out "$part"
             else
@@ -152,8 +195,9 @@ EXTRACT_AVB()
 
 MOVE_CONFIGS()
 {
-    if [ -d "$CONFIGS_DIR" ]; then
-        echo "- Moving configs to target configs directory..."
+    if [ -n "$CONFIGS_DIR" ]; then
+        mkdir -p "$CONFIGS_DIR"
+        echo "- Moving configs to target configs directory ($CONFIGS_DIR)..."
         for cfg in file_context-* fs_config-*; do
             if [ -f "$cfg" ]; then
                 mv "$cfg" "$CONFIGS_DIR/"
