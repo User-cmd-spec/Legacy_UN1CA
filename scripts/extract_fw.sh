@@ -1,232 +1,670 @@
+```bash
 #!/usr/bin/env bash
 
-# shellcheck disable=SC2162
+# Samsung firmware extractor
+# Extracts AP/CSC images, EROFS/ext4/f2fs filesystems,
+# and generates file_context-* / fs_config-* files.
 
-set -e
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# --------------------------------------------------------------------
+# Configuration
+# --------------------------------------------------------------------
 
 PREFIX=""
-[ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null 2>&1 && PREFIX="sudo"
+if [[ "$(id -u)" -ne 0 ]]; then
+    if command -v sudo >/dev/null 2>&1; then
+        PREFIX="sudo"
+    else
+        echo "ERROR: Script must be run as root or sudo must be installed." >&2
+        exit 1
+    fi
+fi
+
+# CONFIGS_DIR may be supplied by the caller.
+CONFIGS_DIR="${CONFIGS_DIR:-}"
+
+# --------------------------------------------------------------------
+# Helpers
+# --------------------------------------------------------------------
+
+die()
+{
+    echo "ERROR: $*" >&2
+    exit 1
+}
+
+have()
+{
+    command -v "$1" >/dev/null 2>&1
+}
+
+run()
+{
+    if [[ -n "$PREFIX" ]]; then
+        "$PREFIX" "$@"
+    else
+        "$@"
+    fi
+}
+
+cleanup_tmp()
+{
+    rm -rf -- tmp_out
+}
+
+# Detect filesystem from the image.
+detect_fstype()
+{
+    local img="$1"
+    local result="unknown"
+
+    if have file; then
+        result="$(file -b "$img" 2>/dev/null || true)"
+
+        case "$result" in
+            *"EROFS"*|*"EROFS filesystem"*)
+                echo "erofs"
+                return
+                ;;
+            *"ext4 filesystem"*|*"Linux rev 1.0 ext4 filesystem"*)
+                echo "ext4"
+                return
+                ;;
+            *"F2FS filesystem"*)
+                echo "f2fs"
+                return
+                ;;
+        esac
+    fi
+
+    # EROFS magic: 0xE0F5E1E2 at offset 1024.
+    if have xxd; then
+        local magic
+        magic="$(dd if="$img" bs=1 skip=1024 count=4 2>/dev/null | xxd -p -c 4 || true)"
+
+        if [[ "$magic" == "e2e1f5e0" ]]; then
+            echo "erofs"
+            return
+        fi
+    fi
+
+    echo "$result"
+}
+
+# --------------------------------------------------------------------
+# Kernel extraction
+# --------------------------------------------------------------------
 
 EXTRACT_KERNEL()
 {
-    echo "- Extracting kernel binaries..."
+    echo "- Checking kernel images..."
+
     local found_kernel=false
+
     for img in boot.img dtbo.img init_boot.img vendor_boot.img; do
-        if [ -f "$img" ]; then
-            echo "  - Extracting kernel image: $img"
+        if [[ -f "$img" ]]; then
+            echo "  - Found: $img"
             found_kernel=true
         fi
     done
-    if [ "$found_kernel" = false ]; then
+
+    if [[ "$found_kernel" == false ]]; then
         echo "  - No kernel images found."
     fi
 }
 
+# --------------------------------------------------------------------
+# Unpack LZ4 files from AP
+# --------------------------------------------------------------------
+
 UNPACK_RAW_AP()
 {
-    echo "- Unpacking raw non-super partitions from AP tar..."
-    for lz4_file in *.img.ext4.lz4 *.img.lz4; do
-        if [ -f "$lz4_file" ]; then
-            echo "    - Extracting $lz4_file..."
-            lz4 -d "$lz4_file" "${lz4_file%.lz4}" || true
-            rm -f "$lz4_file"
+    echo "- Unpacking compressed AP images..."
+
+    local found=false
+
+    shopt -s nullglob
+
+    local files=(
+        *.img.ext4.lz4
+        *.img.lz4
+        *.lz4
+    )
+
+    shopt -u nullglob
+
+    for lz4_file in "${files[@]}"; do
+        [[ -f "$lz4_file" ]] || continue
+
+        found=true
+
+        local output="${lz4_file%.lz4}"
+
+        echo "  - Decompressing: $lz4_file -> $output"
+
+        if ! have lz4; then
+            die "lz4 is required to decompress $lz4_file"
         fi
+
+        run lz4 -d -f "$lz4_file" "$output"
+
+        rm -f -- "$lz4_file"
     done
+
+    if [[ "$found" == false ]]; then
+        echo "  - No compressed images found."
+    fi
 }
+
+# --------------------------------------------------------------------
+# Extract filesystem
+# --------------------------------------------------------------------
+
+EXTRACT_FILESYSTEM()
+{
+    local img="$1"
+    local output="$2"
+    local fstype="$3"
+
+    mkdir -p "$output"
+
+    case "$fstype" in
+
+        erofs)
+            if have extract.erofs; then
+                echo "    - Using extract.erofs"
+                run extract.erofs -i "$img" -x -o "$output"
+
+            elif have fsck.erofs; then
+                echo "    - Using fsck.erofs"
+                run fsck.erofs --extract="$output" "$img"
+
+            elif have 7z; then
+                echo "    - WARNING: Using 7z fallback for EROFS"
+                run 7z x "$img" "-o$output"
+
+            else
+                die "No EROFS extractor found. Install erofs-utils."
+            fi
+            ;;
+
+        ext4)
+            if have 7z; then
+                echo "    - Using 7z"
+                run 7z x "$img" "-o$output"
+            else
+                die "7z is required for ext4 extraction."
+            fi
+            ;;
+
+        f2fs)
+            if have 7z; then
+                echo "    - Using 7z"
+                run 7z x "$img" "-o$output"
+            else
+                die "7z is required for f2fs extraction."
+            fi
+            ;;
+
+        *)
+            echo "    - WARNING: Unknown filesystem type."
+            return 1
+            ;;
+    esac
+
+    return 0
+}
+
+# --------------------------------------------------------------------
+# Generate file_context
+# --------------------------------------------------------------------
+
+GENERATE_FILE_CONTEXT()
+{
+    local root="$1"
+    local partition="$2"
+    local output="file_context-$partition"
+
+    : > "$output"
+
+    echo "    - Generating $output"
+
+    # Find using relative paths so we never accidentally preserve
+    # tmp_out/ in the resulting Android path.
+    (
+        cd "$root"
+
+        run find . -mindepth 1 -print0 2>/dev/null |
+        while IFS= read -r -d '' path; do
+
+            # Convert ./foo/bar -> /foo/bar
+            path="${path#./}"
+
+            local android_path
+
+            if [[ "$partition" == "system" ]]; then
+                android_path="/$path"
+            else
+                android_path="/$partition/$path"
+            fi
+
+            local context=""
+
+            if run getfattr \
+                -n security.selinux \
+                --only-values \
+                -h \
+                "$path" >/tmp/selinux_context.$$ 2>/dev/null; then
+
+                context="$(cat /tmp/selinux_context.$$)"
+                rm -f /tmp/selinux_context.$$
+
+            else
+                rm -f /tmp/selinux_context.$$
+            fi
+
+            # Never generate an invalid line with an empty context.
+            if [[ -n "$context" ]]; then
+                printf '%s %s\n' "$android_path" "$context" >> "../$output"
+            fi
+
+        done
+    )
+
+    # Remove accidental CR/LF corruption.
+    sed -i 's/\r$//' "$output"
+
+    # Basic validation.
+    if grep -nE '^[^ ]+[[:space:]]*$' "$output" >/dev/null 2>&1; then
+        echo "    - WARNING: Empty SELinux context detected in $output"
+    fi
+}
+
+# --------------------------------------------------------------------
+# Generate fs_config
+# --------------------------------------------------------------------
+
+GENERATE_FS_CONFIG()
+{
+    local root="$1"
+    local partition="$2"
+    local output="fs_config-$partition"
+
+    : > "$output"
+
+    echo "    - Generating $output"
+
+    (
+        cd "$root"
+
+        run find . -mindepth 1 -print0 2>/dev/null |
+        while IFS= read -r -d '' path; do
+
+            path="${path#./}"
+
+            local android_path
+
+            if [[ "$partition" == "system" ]]; then
+                android_path="/$path"
+            else
+                android_path="/$partition/$path"
+            fi
+
+            local uid gid mode
+
+            uid="$(run stat -c '%u' "$path")"
+            gid="$(run stat -c '%g' "$path")"
+            mode="$(run stat -c '%a' "$path")"
+
+            # Android fs_config expects numeric mode.
+            # Preserve executable capabilities used by Android.
+            local capabilities="0x0"
+
+            case "/$path" in
+                */system/bin/run-as)
+                    capabilities="0xc0"
+                    ;;
+                */system/bin/simpleperf_app_runner)
+                    capabilities="0xc0"
+                    ;;
+            esac
+
+            printf '%s %s %s %s capabilities=%s\n' \
+                "$android_path" \
+                "$uid" \
+                "$gid" \
+                "$mode" \
+                "$capabilities" \
+                >> "../$output"
+
+        done
+    )
+
+    sed -i 's/\r$//' "$output"
+}
+
+# --------------------------------------------------------------------
+# Generate configs for partition
+# --------------------------------------------------------------------
+
+GENERATE_CONFIGS()
+{
+    local root="$1"
+    local partition="$2"
+
+    echo "  - Generating metadata for $partition..."
+
+    GENERATE_FILE_CONTEXT "$root" "$partition"
+    GENERATE_FS_CONFIG "$root" "$partition"
+
+    echo "    - file_context-$partition: $(wc -l < "file_context-$partition") entries"
+    echo "    - fs_config-$partition:    $(wc -l < "fs_config-$partition") entries"
+}
+
+# --------------------------------------------------------------------
+# Process one filesystem image
+# --------------------------------------------------------------------
+
+PROCESS_IMAGE()
+{
+    local img="$1"
+    local partition="$2"
+
+    rm -rf -- tmp_out "$partition"
+    rm -f -- "file_context-$partition" "fs_config-$partition"
+
+    mkdir -p tmp_out
+
+    local fstype
+    fstype="$(detect_fstype "$img")"
+
+    echo "  - Processing $img"
+    echo "    - Partition: $partition"
+    echo "    - Filesystem: $fstype"
+
+    if [[ "$fstype" == "unknown" ]]; then
+        echo "    - WARNING: Could not determine filesystem type."
+        cleanup_tmp
+        return 0
+    fi
+
+    if ! EXTRACT_FILESYSTEM "$img" tmp_out "$fstype"; then
+        echo "    - WARNING: Failed to extract $partition."
+        cleanup_tmp
+        return 0
+    fi
+
+    if [[ -z "$(find tmp_out -mindepth 1 -print -quit 2>/dev/null)" ]]; then
+        echo "    - WARNING: Extracted directory is empty."
+        cleanup_tmp
+        return 0
+    fi
+
+    GENERATE_CONFIGS "tmp_out" "$partition"
+
+    mv tmp_out "$partition"
+}
+
+# --------------------------------------------------------------------
+# Extract super / OS partitions
+# --------------------------------------------------------------------
 
 EXTRACT_OS_PARTITIONS()
 {
     echo "- Processing OS partitions..."
 
-    if [ -f "super.img" ]; then
-        if command -v simg2img >/dev/null 2>&1; then
-            if file super.img 2>/dev/null | grep -q "Android sparse"; then
+    # ---------------------------------------------------------------
+    # super.img
+    # ---------------------------------------------------------------
+
+    if [[ -f "super.img" ]]; then
+
+        if have file && have simg2img; then
+            if file -b "super.img" 2>/dev/null | grep -qi "Android sparse"; then
                 echo "  - Converting sparse super.img to raw..."
-                simg2img super.img super.raw.img && mv super.raw.img super.img
+
+                run simg2img \
+                    "super.img" \
+                    "super.raw.img"
+
+                mv -f "super.raw.img" "super.img"
             fi
         fi
 
-        echo "  - Extracting dynamic super.img..."
-        if command -v lpunpack >/dev/null 2>&1; then
-            lpunpack super.img . || true
-        elif command -v dumpir >/dev/null 2>&1; then
-            dumpir super.img . || true
+        if have lpunpack; then
+            echo "  - Extracting dynamic partitions from super.img..."
+
+            run lpunpack \
+                "super.img" \
+                . || {
+                    echo "  - WARNING: lpunpack failed."
+                }
+
+        else
+            echo "  - WARNING: lpunpack not found."
         fi
     fi
 
-    if [ -f "system.img" ] && [ -d "system" ]; then
-        rm -rf "system"
-    fi
+    # ---------------------------------------------------------------
+    # Process all .img files
+    # ---------------------------------------------------------------
 
-    for img in *.img; do
-        [ -e "$img" ] || continue
-        [ "$img" = "super.img" ] && continue
+    shopt -s nullglob
+    local images=( *.img )
+    shopt -u nullglob
 
-        PARTITION="${img%.img}"
+    for img in "${images[@]}"; do
 
-        rm -rf "tmp_out" "$PARTITION"
-        rm -f "file_context-$PARTITION" "fs_config-$PARTITION"
+        [[ -f "$img" ]] || continue
+        [[ "$img" == "super.img" ]] && continue
 
-        mkdir -p tmp_out
+        local partition="${img%.img}"
 
-        FSTYPE="erofs"
-        if command -v file >/dev/null 2>&1; then
-            if file "$img" | grep -q "ext4"; then
-                FSTYPE="ext4"
-            elif file "$img" | grep -q "f2fs"; then
-                FSTYPE="f2fs"
-            fi
-        fi
-
-        echo "  - Unpacking filesystem content: $PARTITION ($FSTYPE)"
-
-        if [ "$FSTYPE" = "erofs" ]; then
-            if command -v extract.erofs >/dev/null 2>&1; then
-                extract.erofs -i "$img" -x -o tmp_out || true
-            elif command -v fsck.erofs >/dev/null 2>&1; then
-                fsck.erofs --extract=tmp_out "$img" || true
-            elif command -v 7z >/dev/null 2>&1; then
-                7z x "$img" -otmp_out || true
-            fi
-        elif [ "$FSTYPE" = "ext4" ] && command -v 7z >/dev/null 2>&1; then
-            7z x "$img" -otmp_out || true
-        fi
-
-        if [ -z "$(ls -A tmp_out 2>/dev/null)" ]; then
-            echo "  ! WARNING: Failed to extract $PARTITION ($FSTYPE) or directory is empty."
-            rm -rf tmp_out
-            continue
-        fi
-
-        echo "  - Generating fs_config and file_context for $PARTITION"
-
-        $PREFIX find "tmp_out" 2>/dev/null | while read -r i; do
-            [ -z "$i" ] && continue
-            echo -n "$i " >> "file_context-$PARTITION"
-            $PREFIX getfattr -n security.selinux --only-values -h "$i" >> "file_context-$PARTITION" 2>/dev/null || true
-            echo "" >> "file_context-$PARTITION"
-
-            CAPABILITIES="0x0"
-            case "$i" in *"run-as" | *"simpleperf_app_runner") CAPABILITIES="0xc0" ;; esac
-            $PREFIX stat -c "%n %u %g %a capabilities=$CAPABILITIES" "$i" >> "fs_config-$PARTITION" 2>/dev/null || true
-        done
-
-        if [ -f "file_context-$PARTITION" ]; then
-            if [ "$PARTITION" = "system" ]; then
-                sed -i -e "s/tmp_out /\/ /g" -e "s/tmp_out\//\//g" "file_context-$PARTITION" 2>/dev/null || true
-            else
-                sed -i -e "s/tmp_out/\/$PARTITION/g" "file_context-$PARTITION" 2>/dev/null || true
-            fi
-        fi
-
-        if [ -f "fs_config-$PARTITION" ]; then
-            if [ "$PARTITION" = "system" ]; then
-                sed -i -e "s/tmp_out / /g" -e "s/tmp_out\///g" "fs_config-$PARTITION" 2>/dev/null || true
-            else
-                sed -i -e "s/tmp_out / /g" -e "s/tmp_out/$PARTITION/g" "fs_config-$PARTITION" 2>/dev/null || true
-            fi
-        fi
-
-        mv tmp_out "$PARTITION"
+        PROCESS_IMAGE "$img" "$partition"
     done
 }
+
+# --------------------------------------------------------------------
+# CSC extraction
+# --------------------------------------------------------------------
 
 EXTRACT_CSC_PARTITIONS()
 {
     echo "- Extracting CSC partitions (prism / optics)..."
-    local csc_tar
-    csc_tar=$(ls CSC_*.tar.md5 CSC_*.tar 2>/dev/null | head -n 1 || true)
 
-    if [ -n "$csc_tar" ]; then
-        for part in prism optics; do
-            if tar -tf "$csc_tar" "$part.img.lz4" >/dev/null 2>&1; then
-                echo "  - Unpacking CSC partition: $part from $csc_tar"
-                tar -xf "$csc_tar" "$part.img.lz4" || true
-                lz4 -d "$part.img.lz4" "$part.img" || true
-                rm -f "$part.img.lz4"
+    local csc_tar=""
 
-                rm -rf tmp_out "$part" "file_context-$part" "fs_config-$part"
-                mkdir -p tmp_out
+    shopt -s nullglob
+    local csc_files=(
+        CSC_*.tar.md5
+        CSC_*.tar
+    )
+    shopt -u nullglob
 
-                if command -v extract.erofs >/dev/null 2>&1; then
-                    extract.erofs -i "$part.img" -x -o tmp_out || true
-                elif command -v fsck.erofs >/dev/null 2>&1; then
-                    fsck.erofs --extract=tmp_out "$part.img" || true
-                elif command -v 7z >/dev/null 2>&1; then
-                    7z x "$part.img" -otmp_out || true
-                fi
-
-                if [ -z "$(ls -A tmp_out 2>/dev/null)" ]; then
-                    echo "  ! WARNING: Failed to extract $part or directory is empty."
-                    rm -rf tmp_out
-                    continue
-                fi
-
-                echo "  - Generating fs_config and file_context for $part"
-                $PREFIX find "tmp_out" 2>/dev/null | while read -r i; do
-                    [ -z "$i" ] && continue
-                    echo -n "$i " >> "file_context-$part"
-                    $PREFIX getfattr -n security.selinux --only-values -h "$i" >> "file_context-$part" 2>/dev/null || true
-                    echo "" >> "file_context-$part"
-                    $PREFIX stat -c "%n %u %g %a capabilities=0x0" "$i" >> "fs_config-$part" 2>/dev/null || true
-                done
-
-                if [ -f "file_context-$part" ]; then
-                    sed -i -e "s/tmp_out/\/$part/g" "file_context-$part" 2>/dev/null || true
-                fi
-                if [ -f "fs_config-$part" ]; then
-                    sed -i -e "s/tmp_out / /g" -e "s/tmp_out/$part/g" "fs_config-$part" 2>/dev/null || true
-                fi
-
-                mv tmp_out "$part"
-            else
-                echo "  - $part image not found in TARs or extracted super."
-            fi
-        done
-    else
-        echo "  - No CSC archive found."
+    if (( ${#csc_files[@]} > 0 )); then
+        csc_tar="${csc_files[0]}"
     fi
+
+    if [[ -z "$csc_tar" ]]; then
+        echo "  - No CSC archive found."
+        return 0
+    fi
+
+    if ! have tar; then
+        die "tar is required."
+    fi
+
+    if ! have lz4; then
+        die "lz4 is required for CSC extraction."
+    fi
+
+    for part in prism optics; do
+
+        local member="${part}.img.lz4"
+
+        if ! tar -tf "$csc_tar" "$member" >/dev/null 2>&1; then
+            echo "  - $member not present in $csc_tar."
+            continue
+        fi
+
+        echo "  - Extracting $member from $csc_tar..."
+
+        rm -f -- "$member" "${part}.img"
+        rm -rf -- tmp_out "$part"
+        rm -f -- "file_context-$part" "fs_config-$part"
+
+        tar -xf "$csc_tar" "$member"
+
+        run lz4 -d -f "$member" "${part}.img"
+
+        rm -f -- "$member"
+
+        local fstype
+        fstype="$(detect_fstype "${part}.img")"
+
+        echo "    - Filesystem: $fstype"
+
+        mkdir -p tmp_out
+
+        if ! EXTRACT_FILESYSTEM "${part}.img" tmp_out "$fstype"; then
+            echo "    - WARNING: Failed to extract $part."
+            cleanup_tmp
+            continue
+        fi
+
+        if [[ -z "$(find tmp_out -mindepth 1 -print -quit 2>/dev/null)" ]]; then
+            echo "    - WARNING: $part is empty after extraction."
+            cleanup_tmp
+            continue
+        fi
+
+        GENERATE_CONFIGS "tmp_out" "$part"
+
+        mv tmp_out "$part"
+    done
 }
+
+# --------------------------------------------------------------------
+# AVB
+# --------------------------------------------------------------------
 
 EXTRACT_AVB()
 {
-    echo "- Extracting AVB binaries..."
+    echo "- Checking AVB metadata..."
+
+    for img in boot.img init_boot.img vendor_boot.img dtbo.img vbmeta.img; do
+        if [[ -f "$img" ]]; then
+            echo "  - Found $img"
+        fi
+    done
 }
+
+# --------------------------------------------------------------------
+# Move configuration files
+# --------------------------------------------------------------------
 
 MOVE_CONFIGS()
 {
-    if [ -n "$CONFIGS_DIR" ]; then
-        mkdir -p "$CONFIGS_DIR"
-        echo "- Moving configs to target configs directory ($CONFIGS_DIR)..."
-        for cfg in file_context-* fs_config-*; do
-            if [ -f "$cfg" ]; then
-                mv "$cfg" "$CONFIGS_DIR/"
-                ln -sf "$CONFIGS_DIR/$cfg" "$cfg"
-            fi
-        done
-    fi
+    [[ -n "$CONFIGS_DIR" ]] || return 0
+
+    mkdir -p "$CONFIGS_DIR"
+
+    echo "- Moving generated configs to:"
+    echo "  $CONFIGS_DIR"
+
+    shopt -s nullglob
+
+    local configs=(
+        file_context-*
+        fs_config-*
+    )
+
+    shopt -u nullglob
+
+    for cfg in "${configs[@]}"; do
+
+        [[ -f "$cfg" ]] || continue
+
+        # Do not move an existing symlink.
+        if [[ -L "$cfg" ]]; then
+            continue
+        fi
+
+        mv -f "$cfg" "$CONFIGS_DIR/"
+
+        ln -sfn \
+            "$CONFIGS_DIR/$cfg" \
+            "$cfg"
+    done
 }
+
+# --------------------------------------------------------------------
+# Main firmware extraction
+# --------------------------------------------------------------------
 
 EXTRACT_ALL()
 {
-    echo "Extracting $MODEL firmware with $REGION CSC..."
+    echo
+    echo "============================================================"
+    echo "Extracting $MODEL firmware with $REGION CSC"
+    echo "============================================================"
 
     local PDR
     PDR="$(pwd)"
 
-    mkdir -p "$FW_DIR/${MODEL}_${REGION}"
-    cd "$FW_DIR/${MODEL}_${REGION}"
+    local firmware_dir="$FW_DIR/${MODEL}_${REGION}"
 
-    if [[ "$MODEL" == *"A366B"* || "$MODEL" == *"a366b"* ]] && [ -f "$ODIN_DIR/${MODEL}_${REGION}/a366bsystem.img" ]; then
-        echo "  - Found external system image (a366bsystem.img), setting as system.img..."
-        cp --preserve=all "$ODIN_DIR/${MODEL}_${REGION}/a366bsystem.img" "system.img" 2>/dev/null || true
+    mkdir -p "$firmware_dir"
+    cd "$firmware_dir"
+
+    # ---------------------------------------------------------------
+    # External A366B system image
+    # ---------------------------------------------------------------
+
+    if [[ "$MODEL" == *"A366B"* || "$MODEL" == *"a366b"* ]]; then
+
+        local external_system="$ODIN_DIR/${MODEL}_${REGION}/a366bsystem.img"
+
+        if [[ -f "$external_system" ]]; then
+            echo "  - Found external A366B system image."
+
+            cp --preserve=all \
+                "$external_system" \
+                "system.img"
+        fi
     fi
 
-    local ap_tar
-    ap_tar=$(ls "$ODIN_DIR/${MODEL}_${REGION}"/AP_*.tar.md5 "$ODIN_DIR/${MODEL}_${REGION}"/AP_*.tar 2>/dev/null | head -n 1 || true)
-    if [ -n "$ap_tar" ]; then
-        tar -xf "$ap_tar" -C . || true
+    # ---------------------------------------------------------------
+    # AP TAR
+    # ---------------------------------------------------------------
+
+    local ap_tar=""
+
+    shopt -s nullglob
+    local ap_files=(
+        "$ODIN_DIR/${MODEL}_${REGION}"/AP_*.tar.md5
+        "$ODIN_DIR/${MODEL}_${REGION}"/AP_*.tar
+    )
+    shopt -u nullglob
+
+    if (( ${#ap_files[@]} > 0 )); then
+        ap_tar="${ap_files[0]}"
     fi
+
+    if [[ -n "$ap_tar" ]]; then
+        echo "  - Extracting AP archive:"
+        echo "    $ap_tar"
+
+        tar -xf "$ap_tar" -C .
+    else
+        echo "  - WARNING: No AP archive found."
+    fi
+
+    # ---------------------------------------------------------------
+    # Extraction pipeline
+    # ---------------------------------------------------------------
 
     EXTRACT_KERNEL
     UNPACK_RAW_AP
@@ -236,14 +674,37 @@ EXTRACT_ALL()
     MOVE_CONFIGS
 
     cd "$PDR"
-    echo ""
+
+    echo
+    echo "Finished: ${MODEL}_${REGION}"
+    echo
 }
 
+# --------------------------------------------------------------------
+# Validate required variables
+# --------------------------------------------------------------------
+
+: "${FW_DIR:?ERROR: FW_DIR is not set}"
+: "${ODIN_DIR:?ERROR: ODIN_DIR is not set}"
+: "${FIRMWARES:?ERROR: FIRMWARES is not set}"
+
+# --------------------------------------------------------------------
+# Main
+# --------------------------------------------------------------------
+
 for i in "${FIRMWARES[@]}"; do
-    MODEL=$(echo -n "$i" | cut -d "/" -f 1)
-    REGION=$(echo -n "$i" | cut -d "/" -f 2)
+
+    MODEL="${i%%/*}"
+    REGION="${i#*/}"
+
+    if [[ -z "$MODEL" || -z "$REGION" || "$MODEL" == "$REGION" ]]; then
+        echo "WARNING: Invalid firmware entry: $i"
+        continue
+    fi
 
     EXTRACT_ALL
 done
 
+echo "All firmware extraction tasks completed."
 exit 0
+```
