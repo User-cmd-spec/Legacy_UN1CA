@@ -424,7 +424,7 @@ EXTRACT_OS_PARTITIONS()
             if file -b "super.img" 2>/dev/null | grep -qi "Android sparse"; then
                 echo "  - Converting sparse super.img to raw..."
 
-                run simg2img \
+                run "$(command -v simg2img)" \
                     "super.img" \
                     "super.raw.img"
 
@@ -435,7 +435,7 @@ EXTRACT_OS_PARTITIONS()
         if have lpunpack; then
             echo "  - Extracting dynamic partitions from super.img..."
 
-            run lpunpack \
+            run "$(command -v lpunpack)" \
                 "super.img" \
                 . || {
                     echo "  - WARNING: lpunpack failed."
