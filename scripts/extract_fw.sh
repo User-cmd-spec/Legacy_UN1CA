@@ -686,16 +686,53 @@ EXTRACT_ALL()
 
 : "${FW_DIR:?ERROR: FW_DIR is not set}"
 : "${ODIN_DIR:?ERROR: ODIN_DIR is not set}"
-: "${FIRMWARES:?ERROR: FIRMWARES is not set}"
+
+# --------------------------------------------------------------------
+# Build firmware list
+# --------------------------------------------------------------------
+
+FIRMWARE_LIST=()
+
+if [[ -n "${SOURCE_FIRMWARE:-}" ]]; then
+    FIRMWARE_LIST+=("$SOURCE_FIRMWARE")
+fi
+
+if [[ -n "${SOURCE_EXTRA_FIRMWARES:-}" ]]; then
+    while IFS= read -r firmware; do
+        [[ -n "$firmware" ]] && FIRMWARE_LIST+=("$firmware")
+    done < <(printf '%s\n' "$SOURCE_EXTRA_FIRMWARES" | tr ',' '\n')
+fi
+
+# If the project provides FIRMWARES, preserve compatibility with it.
+if [[ -n "${FIRMWARES:-}" ]]; then
+    FIRMWARE_LIST=()
+
+    for firmware in "${FIRMWARES[@]}"; do
+        FIRMWARE_LIST+=("$firmware")
+    done
+fi
+
+if (( ${#FIRMWARE_LIST[@]} == 0 )); then
+    echo "ERROR: No firmware entries were provided."
+    echo "Expected SOURCE_FIRMWARE, SOURCE_EXTRA_FIRMWARES or FIRMWARES."
+    exit 1
+fi
 
 # --------------------------------------------------------------------
 # Main
 # --------------------------------------------------------------------
 
-for i in "${FIRMWARES[@]}"; do
+for i in "${FIRMWARE_LIST[@]}"; do
 
     MODEL="${i%%/*}"
-    REGION="${i#*/}"
+    REST="${i#*/}"
+
+    # SOURCE_FIRMWARE may contain:
+    #   MODEL/REGION/BUILD
+    #
+    # We only need MODEL/REGION for the directory structure.
+
+    REGION="${REST%%/*}"
 
     if [[ -z "$MODEL" || -z "$REGION" || "$MODEL" == "$REGION" ]]; then
         echo "WARNING: Invalid firmware entry: $i"
@@ -707,4 +744,3 @@ done
 
 echo "All firmware extraction tasks completed."
 exit 0
-```
