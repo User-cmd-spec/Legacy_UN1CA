@@ -831,12 +831,14 @@ if [[ -n "${SOURCE_EXTRA_FIRMWARES:-}" ]]; then
 fi
 
 # If the project provides FIRMWARES, preserve compatibility with it.
-if [[ declare -p FIRMWARES >/dev/null 2>&1 && ${#FIRMWARES[@]} -gt 0 ]]; then
-    FIRMWARE_LIST=()
+if declare -p FIRMWARES >/dev/null 2>&1; then
+    if (( ${#FIRMWARES[@]} > 0 )); then
+        FIRMWARE_LIST=()
 
-    for firmware in "${FIRMWARES[@]}"; do
-        FIRMWARE_LIST+=("$firmware")
-    done
+        for firmware in "${FIRMWARES[@]}"; do
+            FIRMWARE_LIST+=("$firmware")
+        done
+    fi
 fi
 
 if (( ${#FIRMWARE_LIST[@]} == 0 )); then
