@@ -1,3 +1,4 @@
+```bash
 #!/usr/bin/env bash
 
 # Samsung firmware extractor
@@ -81,7 +82,18 @@ detect_fstype()
     # EROFS magic: 0xE0F5E1E2 at offset 1024.
     if have xxd; then
         local magic
-        magic="$(dd if="$img" bs=1 skip=1024 count=4 2>/dev/null | xxd -p -c 4 || true)"
+        magic="$(
+            dd \
+                if="$img" \
+                bs=1 \
+                skip=1024 \
+                count=4 \
+                2>/dev/null |
+            xxd \
+                -p \
+                -c 4 \
+            || true
+        )"
 
         if [[ "$magic" == "e2e1f5e0" ]]; then
             echo "erofs"
@@ -147,7 +159,11 @@ UNPACK_RAW_AP()
             die "lz4 is required to decompress $lz4_file"
         fi
 
-        run lz4 -d -f "$lz4_file" "$output"
+        run lz4 \
+            -d \
+            -f \
+            "$lz4_file" \
+            "$output"
 
         rm -f -- "$lz4_file"
     done
@@ -174,15 +190,26 @@ EXTRACT_FILESYSTEM()
         erofs)
             if have extract.erofs; then
                 echo "    - Using extract.erofs"
-                run "$(command -v extract.erofs)" \ -i "$img" -x -o "$output"
+
+                run "$(command -v extract.erofs)" \
+                    -i "$img" \
+                    -x \
+                    -o "$output"
 
             elif have fsck.erofs; then
                 echo "    - Using fsck.erofs"
-                  run "$(command -v fsck.erofs)" \ -i "$img" -x -o "$output"--extract="$output" "$img"
+
+                run "$(command -v fsck.erofs)" \
+                    --extract="$output" \
+                    "$img"
 
             elif have 7z; then
                 echo "    - WARNING: Using 7z fallback for EROFS"
-                   run "$(command -v 7z)" \ -i "$img" -x -o "$output"x "$img" "-o$output"
+
+                run "$(command -v 7z)" \
+                    x \
+                    "$img" \
+                    "-o$output"
 
             else
                 die "No EROFS extractor found. Install erofs-utils."
@@ -192,7 +219,12 @@ EXTRACT_FILESYSTEM()
         ext4)
             if have 7z; then
                 echo "    - Using 7z"
-                run 7z x "$img" "-o$output"
+
+                run "$(command -v 7z)" \
+                    x \
+                    "$img" \
+                    "-o$output"
+
             else
                 die "7z is required for ext4 extraction."
             fi
@@ -201,7 +233,12 @@ EXTRACT_FILESYSTEM()
         f2fs)
             if have 7z; then
                 echo "    - Using 7z"
-                run 7z x "$img" "-o$output"
+
+                run "$(command -v 7z)" \
+                    x \
+                    "$img" \
+                    "-o$output"
+
             else
                 die "7z is required for f2fs extraction."
             fi
@@ -235,7 +272,11 @@ GENERATE_FILE_CONTEXT()
     (
         cd "$root"
 
-        run find . -mindepth 1 -print0 2>/dev/null |
+        run find \
+            . \
+            -mindepth 1 \
+            -print0 \
+            2>/dev/null |
         while IFS= read -r -d '' path; do
 
             # Convert ./foo/bar -> /foo/bar
@@ -255,7 +296,9 @@ GENERATE_FILE_CONTEXT()
                 -n security.selinux \
                 --only-values \
                 -h \
-                "$path" >/tmp/selinux_context.$$ 2>/dev/null; then
+                "$path" \
+                >/tmp/selinux_context.$$ \
+                2>/dev/null; then
 
                 context="$(cat /tmp/selinux_context.$$)"
                 rm -f /tmp/selinux_context.$$
@@ -266,7 +309,10 @@ GENERATE_FILE_CONTEXT()
 
             # Never generate an invalid line with an empty context.
             if [[ -n "$context" ]]; then
-                printf '%s %s\n' "$android_path" "$context" >> "../$output"
+                printf '%s %s\n' \
+                    "$android_path" \
+                    "$context" \
+                    >> "../$output"
             fi
 
         done
@@ -298,7 +344,11 @@ GENERATE_FS_CONFIG()
     (
         cd "$root"
 
-        run find . -mindepth 1 -print0 2>/dev/null |
+        run find \
+            . \
+            -mindepth 1 \
+            -print0 \
+            2>/dev/null |
         while IFS= read -r -d '' path; do
 
             path="${path#./}"
@@ -355,8 +405,13 @@ GENERATE_CONFIGS()
 
     echo "  - Generating metadata for $partition..."
 
-    GENERATE_FILE_CONTEXT "$root" "$partition"
-    GENERATE_FS_CONFIG "$root" "$partition"
+    GENERATE_FILE_CONTEXT \
+        "$root" \
+        "$partition"
+
+    GENERATE_FS_CONFIG \
+        "$root" \
+        "$partition"
 
     echo "    - file_context-$partition: $(wc -l < "file_context-$partition") entries"
     echo "    - fs_config-$partition:    $(wc -l < "fs_config-$partition") entries"
@@ -371,8 +426,15 @@ PROCESS_IMAGE()
     local img="$1"
     local partition="$2"
 
-    rm -rf -- tmp_out "$partition"
-    rm -f -- "file_context-$partition" "fs_config-$partition"
+    rm -rf \
+        -- \
+        tmp_out \
+        "$partition"
+
+    rm -f \
+        -- \
+        "file_context-$partition" \
+        "fs_config-$partition"
 
     mkdir -p tmp_out
 
@@ -389,7 +451,11 @@ PROCESS_IMAGE()
         return 0
     fi
 
-    if ! EXTRACT_FILESYSTEM "$img" tmp_out "$fstype"; then
+    if ! EXTRACT_FILESYSTEM \
+        "$img" \
+        tmp_out \
+        "$fstype"; then
+
         echo "    - WARNING: Failed to extract $partition."
         cleanup_tmp
         return 0
@@ -401,9 +467,13 @@ PROCESS_IMAGE()
         return 0
     fi
 
-    GENERATE_CONFIGS "tmp_out" "$partition"
+    GENERATE_CONFIGS \
+        "tmp_out" \
+        "$partition"
 
-    mv tmp_out "$partition"
+    mv \
+        tmp_out \
+        "$partition"
 }
 
 # --------------------------------------------------------------------
@@ -428,7 +498,10 @@ EXTRACT_OS_PARTITIONS()
                     "super.img" \
                     "super.raw.img"
 
-                mv -f "super.raw.img" "super.img"
+                mv \
+                    -f \
+                    "super.raw.img" \
+                    "super.img"
             fi
         fi
 
@@ -451,7 +524,11 @@ EXTRACT_OS_PARTITIONS()
     # ---------------------------------------------------------------
 
     shopt -s nullglob
-    local images=( *.img )
+
+    local images=(
+        *.img
+    )
+
     shopt -u nullglob
 
     for img in "${images[@]}"; do
@@ -461,7 +538,9 @@ EXTRACT_OS_PARTITIONS()
 
         local partition="${img%.img}"
 
-        PROCESS_IMAGE "$img" "$partition"
+        PROCESS_IMAGE \
+            "$img" \
+            "$partition"
     done
 }
 
@@ -476,10 +555,12 @@ EXTRACT_CSC_PARTITIONS()
     local csc_tar=""
 
     shopt -s nullglob
+
     local csc_files=(
         CSC_*.tar.md5
         CSC_*.tar
     )
+
     shopt -u nullglob
 
     if (( ${#csc_files[@]} > 0 )); then
@@ -510,15 +591,35 @@ EXTRACT_CSC_PARTITIONS()
 
         echo "  - Extracting $member from $csc_tar..."
 
-        rm -f -- "$member" "${part}.img"
-        rm -rf -- tmp_out "$part"
-        rm -f -- "file_context-$part" "fs_config-$part"
+        rm -f \
+            -- \
+            "$member" \
+            "${part}.img"
 
-        tar -xf "$csc_tar" "$member"
+        rm -rf \
+            -- \
+            tmp_out \
+            "$part"
 
-        run lz4 -d -f "$member" "${part}.img"
+        rm -f \
+            -- \
+            "file_context-$part" \
+            "fs_config-$part"
 
-        rm -f -- "$member"
+        tar \
+            -xf \
+            "$csc_tar" \
+            "$member"
+
+        run lz4 \
+            -d \
+            -f \
+            "$member" \
+            "${part}.img"
+
+        rm -f \
+            -- \
+            "$member"
 
         local fstype
         fstype="$(detect_fstype "${part}.img")"
@@ -527,7 +628,11 @@ EXTRACT_CSC_PARTITIONS()
 
         mkdir -p tmp_out
 
-        if ! EXTRACT_FILESYSTEM "${part}.img" tmp_out "$fstype"; then
+        if ! EXTRACT_FILESYSTEM \
+            "${part}.img" \
+            tmp_out \
+            "$fstype"; then
+
             echo "    - WARNING: Failed to extract $part."
             cleanup_tmp
             continue
@@ -539,9 +644,13 @@ EXTRACT_CSC_PARTITIONS()
             continue
         fi
 
-        GENERATE_CONFIGS "tmp_out" "$part"
+        GENERATE_CONFIGS \
+            "tmp_out" \
+            "$part"
 
-        mv tmp_out "$part"
+        mv \
+            tmp_out \
+            "$part"
     done
 }
 
@@ -553,7 +662,13 @@ EXTRACT_AVB()
 {
     echo "- Checking AVB metadata..."
 
-    for img in boot.img init_boot.img vendor_boot.img dtbo.img vbmeta.img; do
+    for img in \
+        boot.img \
+        init_boot.img \
+        vendor_boot.img \
+        dtbo.img \
+        vbmeta.img; do
+
         if [[ -f "$img" ]]; then
             echo "  - Found $img"
         fi
@@ -591,7 +706,10 @@ MOVE_CONFIGS()
             continue
         fi
 
-        mv -f "$cfg" "$CONFIGS_DIR/"
+        mv \
+            -f \
+            "$cfg" \
+            "$CONFIGS_DIR/"
 
         ln -sfn \
             "$CONFIGS_DIR/$cfg" \
@@ -629,7 +747,8 @@ EXTRACT_ALL()
         if [[ -f "$external_system" ]]; then
             echo "  - Found external A366B system image."
 
-            cp --preserve=all \
+            cp \
+                --preserve=all \
                 "$external_system" \
                 "system.img"
         fi
@@ -642,10 +761,12 @@ EXTRACT_ALL()
     local ap_tar=""
 
     shopt -s nullglob
+
     local ap_files=(
         "$ODIN_DIR/${MODEL}_${REGION}"/AP_*.tar.md5
         "$ODIN_DIR/${MODEL}_${REGION}"/AP_*.tar
     )
+
     shopt -u nullglob
 
     if (( ${#ap_files[@]} > 0 )); then
@@ -656,7 +777,11 @@ EXTRACT_ALL()
         echo "  - Extracting AP archive:"
         echo "    $ap_tar"
 
-        tar -xf "$ap_tar" -C .
+        tar \
+            -xf \
+            "$ap_tar" \
+            -C \
+            .
     else
         echo "  - WARNING: No AP archive found."
     fi
@@ -699,7 +824,11 @@ fi
 if [[ -n "${SOURCE_EXTRA_FIRMWARES:-}" ]]; then
     while IFS= read -r firmware; do
         [[ -n "$firmware" ]] && FIRMWARE_LIST+=("$firmware")
-    done < <(printf '%s\n' "$SOURCE_EXTRA_FIRMWARES" | tr ',' '\n')
+    done < <(
+        printf '%s\n' \
+            "$SOURCE_EXTRA_FIRMWARES" |
+        tr ',' '\n'
+    )
 fi
 
 # If the project provides FIRMWARES, preserve compatibility with it.
@@ -743,3 +872,4 @@ done
 
 echo "All firmware extraction tasks completed."
 exit 0
+```
