@@ -1,4 +1,3 @@
-```bash
 #!/usr/bin/env bash
 
 # Samsung firmware extractor
@@ -832,7 +831,7 @@ if [[ -n "${SOURCE_EXTRA_FIRMWARES:-}" ]]; then
 fi
 
 # If the project provides FIRMWARES, preserve compatibility with it.
-if [[ -n "${FIRMWARES:-}" ]]; then
+if [[ declare -p FIRMWARES >/dev/null 2>&1 && ${#FIRMWARES[@]} -gt 0 ]]; then
     FIRMWARE_LIST=()
 
     for firmware in "${FIRMWARES[@]}"; do
@@ -855,11 +854,6 @@ for i in "${FIRMWARE_LIST[@]}"; do
     MODEL="${i%%/*}"
     REST="${i#*/}"
 
-    # SOURCE_FIRMWARE may contain:
-    #   MODEL/REGION/BUILD
-    #
-    # We only need MODEL/REGION for the directory structure.
-
     REGION="${REST%%/*}"
 
     if [[ -z "$MODEL" || -z "$REGION" || "$MODEL" == "$REGION" ]]; then
@@ -872,4 +866,3 @@ done
 
 echo "All firmware extraction tasks completed."
 exit 0
-```
