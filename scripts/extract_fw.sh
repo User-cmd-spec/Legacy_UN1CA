@@ -11,15 +11,6 @@ IFS=$'\n\t'
 # Configuration
 # --------------------------------------------------------------------
 
-PREFIX=""
-if [[ "$(id -u)" -ne 0 ]]; then
-    if command -v sudo >/dev/null 2>&1; then
-        PREFIX="sudo"
-    else
-        echo "ERROR: Script must be run as root or sudo must be installed." >&2
-        exit 1
-    fi
-fi
 
 # CONFIGS_DIR may be supplied by the caller.
 CONFIGS_DIR="${CONFIGS_DIR:-}"
@@ -39,14 +30,6 @@ have()
     command -v "$1" >/dev/null 2>&1
 }
 
-run()
-{
-    if [[ -n "$PREFIX" ]]; then
-        "$PREFIX" "$@"
-    else
-        "$@"
-    fi
-}
 
 cleanup_tmp()
 {
@@ -158,7 +141,7 @@ UNPACK_RAW_AP()
             die "lz4 is required to decompress $lz4_file"
         fi
 
-        run lz4 \
+        lz4 \
             -d \
             -f \
             "$lz4_file" \
@@ -190,7 +173,7 @@ EXTRACT_FILESYSTEM()
             if have extract.erofs; then
                 echo "    - Using extract.erofs"
 
-                run "$(command -v extract.erofs)" \
+                "$(command -v extract.erofs)" \
                     -i "$img" \
                     -x \
                     -o "$output"
@@ -198,14 +181,14 @@ EXTRACT_FILESYSTEM()
             elif have fsck.erofs; then
                 echo "    - Using fsck.erofs"
 
-                run "$(command -v fsck.erofs)" \
+                "$(command -v fsck.erofs)" \
                     --extract="$output" \
                     "$img"
 
             elif have 7z; then
                 echo "    - WARNING: Using 7z fallback for EROFS"
 
-                run "$(command -v 7z)" \
+                "$(command -v 7z)" \
                     x \
                     "$img" \
                     "-o$output"
@@ -219,7 +202,7 @@ EXTRACT_FILESYSTEM()
             if have 7z; then
                 echo "    - Using 7z"
 
-                run "$(command -v 7z)" \
+                "$(command -v 7z)" \
                     x \
                     "$img" \
                     "-o$output"
@@ -233,7 +216,7 @@ EXTRACT_FILESYSTEM()
             if have 7z; then
                 echo "    - Using 7z"
 
-                run "$(command -v 7z)" \
+                "$(command -v 7z)" \
                     x \
                     "$img" \
                     "-o$output"
@@ -271,7 +254,7 @@ GENERATE_FILE_CONTEXT()
     (
         cd "$root"
 
-        run find \
+        find \
             . \
             -mindepth 1 \
             -print0 \
@@ -291,7 +274,7 @@ GENERATE_FILE_CONTEXT()
 
             local context=""
 
-            if run getfattr \
+            if getfattr \
                 -n security.selinux \
                 --only-values \
                 -h \
@@ -343,7 +326,7 @@ GENERATE_FS_CONFIG()
     (
         cd "$root"
 
-        run find \
+        find \
             . \
             -mindepth 1 \
             -print0 \
@@ -362,9 +345,9 @@ GENERATE_FS_CONFIG()
 
             local uid gid mode
 
-            uid="$(run stat -c '%u' "$path")"
-            gid="$(run stat -c '%g' "$path")"
-            mode="$(run stat -c '%a' "$path")"
+            uid="$(stat -c '%u' "$path")"
+            gid="$(stat -c '%g' "$path")"
+            mode="$(stat -c '%a' "$path")"
 
             # Android fs_config expects numeric mode.
             # Preserve executable capabilities used by Android.
@@ -493,7 +476,7 @@ EXTRACT_OS_PARTITIONS()
             if file -b "super.img" 2>/dev/null | grep -qi "Android sparse"; then
                 echo "  - Converting sparse super.img to raw..."
 
-                run "$(command -v simg2img)" \
+                "$(command -v simg2img)" \
                     "super.img" \
                     "super.raw.img"
 
@@ -507,7 +490,7 @@ EXTRACT_OS_PARTITIONS()
         if have lpunpack; then
             echo "  - Extracting dynamic partitions from super.img..."
 
-            run "$(command -v lpunpack)" \
+            "$(command -v lpunpack)" \
                 "super.img" \
                 . || {
                     echo "  - WARNING: lpunpack failed."
@@ -610,7 +593,7 @@ EXTRACT_CSC_PARTITIONS()
             "$csc_tar" \
             "$member"
 
-        run lz4 \
+        lz4 \
             -d \
             -f \
             "$member" \
