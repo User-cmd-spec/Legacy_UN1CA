@@ -174,15 +174,15 @@ EXTRACT_FILESYSTEM()
         erofs)
             if have extract.erofs; then
                 echo "    - Using extract.erofs"
-                run extract.erofs -i "$img" -x -o "$output"
+                run "$(command -v extract.erofs)" \ -i "$img" -x -o "$output"
 
             elif have fsck.erofs; then
                 echo "    - Using fsck.erofs"
-                run fsck.erofs --extract="$output" "$img"
+                  run "$(command -v fsck.erofs)" \ -i "$img" -x -o "$output"--extract="$output" "$img"
 
             elif have 7z; then
                 echo "    - WARNING: Using 7z fallback for EROFS"
-                run 7z x "$img" "-o$output"
+                   run "$(command -v 7z)" \ -i "$img" -x -o "$output"x "$img" "-o$output"
 
             else
                 die "No EROFS extractor found. Install erofs-utils."
