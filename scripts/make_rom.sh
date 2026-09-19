@@ -96,20 +96,20 @@ if [[ "$BUILD_ROM" == true ]]; then
             break
         fi
     done
-
-    if [[ "$FW_MISSING" == true ]]; then
-        echo "- Firmware directory is missing. Downloading firmware..."
-        bash "$SRC_DIR/scripts/download_fw.sh"
-    fi
-
-    echo "- Extracting/validating firmware..."
-    if ! bash "$SRC_DIR/scripts/extract_fw.sh"; then
-        echo
-        echo "ERROR: extract_fw.sh failed."
-        echo "The firmware was NOT downloaded again."
-        echo "Fix the extraction error above and rerun make_rom.sh."
-        exit 1
-    fi
+# Remove the hash tags below if you want make_rom.sh to automatically download and extract the firmware.
+#    if [[ "$FW_MISSING" == true ]]; then
+#        echo "- Firmware directory is missing. Downloading firmware..."
+#        bash "$SRC_DIR/scripts/download_fw.sh"
+#   fi
+#
+#    echo "- Extracting/validating firmware..."
+#    if ! bash "$SRC_DIR/scripts/extract_fw.sh"; then
+#        echo
+#        echo "ERROR: extract_fw.sh failed."
+#        echo "The firmware was NOT downloaded again."
+#        echo "Fix the extraction error above and rerun make_rom.sh."
+#        exit 1
+#    fi
 
     echo -e "\n- Creating work dir..."
     bash "$SRC_DIR/scripts/internal/create_work_dir.sh"
