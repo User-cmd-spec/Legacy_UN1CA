@@ -1,23 +1,9 @@
 #!/usr/bin/env bash
 
-# Samsung firmware extractor
-# Extracts AP/CSC images, EROFS/ext4/f2fs filesystems,
-# and generates file_context-* / fs_config-* files.
-
 set -Eeuo pipefail
 IFS=$'\n\t'
 
-# --------------------------------------------------------------------
-# Configuration
-# --------------------------------------------------------------------
-
-
-# CONFIGS_DIR may be supplied by the caller.
-CONFIGS_DIR="${CONFIGS_DIR:-}"
-
-# --------------------------------------------------------------------
-# Helpers
-# --------------------------------------------------------------------
+CONFIGS_DIR="${CONFIGS_DIR:-configs}"
 
 die()
 {
@@ -30,13 +16,11 @@ have()
     command -v "$1" >/dev/null 2>&1
 }
 
-
 cleanup_tmp()
 {
     rm -rf -- tmp_out
 }
 
-# Detect filesystem from the image.
 detect_fstype()
 {
     local img="$1"
@@ -61,7 +45,6 @@ detect_fstype()
         esac
     fi
 
-    # EROFS magic: 0xE0F5E1E2 at offset 1024.
     if have xxd; then
         local magic
         magic="$(
@@ -86,10 +69,6 @@ detect_fstype()
     echo "$result"
 }
 
-# --------------------------------------------------------------------
-# Kernel extraction
-# --------------------------------------------------------------------
-
 EXTRACT_KERNEL()
 {
     echo "- Checking kernel images..."
@@ -107,10 +86,6 @@ EXTRACT_KERNEL()
         echo "  - No kernel images found."
     fi
 }
-
-# --------------------------------------------------------------------
-# Unpack LZ4 files from AP
-# --------------------------------------------------------------------
 
 UNPACK_RAW_AP()
 {
@@ -143,6 +118,7 @@ UNPACK_RAW_AP()
 
         lz4 \
             -d \
+            -q \
             -f \
             "$lz4_file" \
             "$output"
@@ -154,10 +130,6 @@ UNPACK_RAW_AP()
         echo "  - No compressed images found."
     fi
 }
-
-# --------------------------------------------------------------------
-# Extract filesystem
-# --------------------------------------------------------------------
 
 EXTRACT_FILESYSTEM()
 {
@@ -173,7 +145,7 @@ EXTRACT_FILESYSTEM()
             if have extract.erofs; then
                 echo "    - Using extract.erofs"
 
-                "$(command -v extract.erofs)" \
+                $(command -v extract.erofs) \
                     -i "$img" \
                     -x \
                     -o "$output"
@@ -181,15 +153,16 @@ EXTRACT_FILESYSTEM()
             elif have fsck.erofs; then
                 echo "    - Using fsck.erofs"
 
-                "$(command -v fsck.erofs)" \
+                $(command -v fsck.erofs) \
                     --extract="$output" \
                     "$img"
 
             elif have 7z; then
                 echo "    - WARNING: Using 7z fallback for EROFS"
 
-                "$(command -v 7z)" \
+                $(command -v 7z) \
                     x \
+                    -bd \
                     "$img" \
                     "-o$output"
 
@@ -202,8 +175,9 @@ EXTRACT_FILESYSTEM()
             if have 7z; then
                 echo "    - Using 7z"
 
-                "$(command -v 7z)" \
+                $(command -v 7z) \
                     x \
+                    -bd \
                     "$img" \
                     "-o$output"
 
@@ -216,8 +190,9 @@ EXTRACT_FILESYSTEM()
             if have 7z; then
                 echo "    - Using 7z"
 
-                "$(command -v 7z)" \
+                $(command -v 7z) \
                     x \
+                    -bd \
                     "$img" \
                     "-o$output"
 
@@ -235,10 +210,6 @@ EXTRACT_FILESYSTEM()
     return 0
 }
 
-# --------------------------------------------------------------------
-# Generate file_context
-# --------------------------------------------------------------------
-
 GENERATE_FILE_CONTEXT()
 {
     local root="$1"
@@ -249,8 +220,6 @@ GENERATE_FILE_CONTEXT()
 
     echo "    - Generating $output"
 
-    # Find using relative paths so we never accidentally preserve
-    # tmp_out/ in the resulting Android path.
     (
         cd "$root"
 
@@ -261,7 +230,6 @@ GENERATE_FILE_CONTEXT()
             2>/dev/null |
         while IFS= read -r -d '' path; do
 
-            # Convert ./foo/bar -> /foo/bar
             path="${path#./}"
 
             local android_path
@@ -289,7 +257,6 @@ GENERATE_FILE_CONTEXT()
                 rm -f /tmp/selinux_context.$$
             fi
 
-            # Never generate an invalid line with an empty context.
             if [[ -n "$context" ]]; then
                 printf '%s %s\n' \
                     "$android_path" \
@@ -300,18 +267,12 @@ GENERATE_FILE_CONTEXT()
         done
     )
 
-    # Remove accidental CR/LF corruption.
     sed -i 's/\r$//' "$output"
 
-    # Basic validation.
     if grep -nE '^[^ ]+[[:space:]]*$' "$output" >/dev/null 2>&1; then
         echo "    - WARNING: Empty SELinux context detected in $output"
     fi
 }
-
-# --------------------------------------------------------------------
-# Generate fs_config
-# --------------------------------------------------------------------
 
 GENERATE_FS_CONFIG()
 {
@@ -349,8 +310,6 @@ GENERATE_FS_CONFIG()
             gid="$(stat -c '%g' "$path")"
             mode="$(stat -c '%a' "$path")"
 
-            # Android fs_config expects numeric mode.
-            # Preserve executable capabilities used by Android.
             local capabilities="0x0"
 
             case "/$path" in
@@ -376,10 +335,6 @@ GENERATE_FS_CONFIG()
     sed -i 's/\r$//' "$output"
 }
 
-# --------------------------------------------------------------------
-# Generate configs for partition
-# --------------------------------------------------------------------
-
 GENERATE_CONFIGS()
 {
     local root="$1"
@@ -399,14 +354,11 @@ GENERATE_CONFIGS()
     echo "    - fs_config-$partition:    $(wc -l < "fs_config-$partition") entries"
 }
 
-# --------------------------------------------------------------------
-# Process one filesystem image
-# --------------------------------------------------------------------
-
 PROCESS_IMAGE()
 {
     local img="$1"
     local partition="$2"
+    local clean_partition="${partition%_[ab]}"
 
     rm -rf \
         -- \
@@ -415,8 +367,8 @@ PROCESS_IMAGE()
 
     rm -f \
         -- \
-        "file_context-$partition" \
-        "fs_config-$partition"
+        "file_context-$clean_partition" \
+        "fs_config-$clean_partition"
 
     mkdir -p tmp_out
 
@@ -451,24 +403,16 @@ PROCESS_IMAGE()
 
     GENERATE_CONFIGS \
         "tmp_out" \
-        "$partition"
+        "$clean_partition"
 
     mv \
         tmp_out \
         "$partition"
 }
 
-# --------------------------------------------------------------------
-# Extract super / OS partitions
-# --------------------------------------------------------------------
-
 EXTRACT_OS_PARTITIONS()
 {
     echo "- Processing OS partitions..."
-
-    # ---------------------------------------------------------------
-    # super.img
-    # ---------------------------------------------------------------
 
     if [[ -f "super.img" ]]; then
 
@@ -476,7 +420,7 @@ EXTRACT_OS_PARTITIONS()
             if file -b "super.img" 2>/dev/null | grep -qi "Android sparse"; then
                 echo "  - Converting sparse super.img to raw..."
 
-                "$(command -v simg2img)" \
+                $(command -v simg2img) \
                     "super.img" \
                     "super.raw.img"
 
@@ -490,7 +434,7 @@ EXTRACT_OS_PARTITIONS()
         if have lpunpack; then
             echo "  - Extracting dynamic partitions from super.img..."
 
-            "$(command -v lpunpack)" \
+            $(command -v lpunpack) \
                 "super.img" \
                 . || {
                     echo "  - WARNING: lpunpack failed."
@@ -500,10 +444,6 @@ EXTRACT_OS_PARTITIONS()
             echo "  - WARNING: lpunpack not found."
         fi
     fi
-
-    # ---------------------------------------------------------------
-    # Process all .img files
-    # ---------------------------------------------------------------
 
     shopt -s nullglob
 
@@ -525,10 +465,6 @@ EXTRACT_OS_PARTITIONS()
             "$partition"
     done
 }
-
-# --------------------------------------------------------------------
-# CSC extraction
-# --------------------------------------------------------------------
 
 EXTRACT_CSC_PARTITIONS()
 {
@@ -583,10 +519,12 @@ EXTRACT_CSC_PARTITIONS()
             tmp_out \
             "$part"
 
+        local clean_part="${part%_[ab]}"
+
         rm -f \
             -- \
-            "file_context-$part" \
-            "fs_config-$part"
+            "file_context-$clean_part" \
+            "fs_config-$clean_part"
 
         tar \
             -xf \
@@ -595,6 +533,7 @@ EXTRACT_CSC_PARTITIONS()
 
         lz4 \
             -d \
+            -q \
             -f \
             "$member" \
             "${part}.img"
@@ -628,17 +567,13 @@ EXTRACT_CSC_PARTITIONS()
 
         GENERATE_CONFIGS \
             "tmp_out" \
-            "$part"
+            "$clean_part"
 
         mv \
             tmp_out \
             "$part"
     done
 }
-
-# --------------------------------------------------------------------
-# AVB
-# --------------------------------------------------------------------
 
 EXTRACT_AVB()
 {
@@ -656,10 +591,6 @@ EXTRACT_AVB()
         fi
     done
 }
-
-# --------------------------------------------------------------------
-# Move configuration files
-# --------------------------------------------------------------------
 
 MOVE_CONFIGS()
 {
@@ -683,7 +614,6 @@ MOVE_CONFIGS()
 
         [[ -f "$cfg" ]] || continue
 
-        # Do not move an existing symlink.
         if [[ -L "$cfg" ]]; then
             continue
         fi
@@ -698,10 +628,6 @@ MOVE_CONFIGS()
             "$cfg"
     done
 }
-
-# --------------------------------------------------------------------
-# Main firmware extraction
-# --------------------------------------------------------------------
 
 EXTRACT_ALL()
 {
@@ -718,10 +644,6 @@ EXTRACT_ALL()
     mkdir -p "$firmware_dir"
     cd "$firmware_dir"
 
-    # ---------------------------------------------------------------
-    # External A366B system image
-    # ---------------------------------------------------------------
-
     if [[ "$MODEL" == *"A366B"* || "$MODEL" == *"a366b"* ]]; then
 
         local external_system="$ODIN_DIR/${MODEL}_${REGION}/a366bsystem.img"
@@ -735,10 +657,6 @@ EXTRACT_ALL()
                 "system.img"
         fi
     fi
-
-    # ---------------------------------------------------------------
-    # AP TAR
-    # ---------------------------------------------------------------
 
     local ap_tar=""
 
@@ -768,10 +686,6 @@ EXTRACT_ALL()
         echo "  - WARNING: No AP archive found."
     fi
 
-    # ---------------------------------------------------------------
-    # Extraction pipeline
-    # ---------------------------------------------------------------
-
     EXTRACT_KERNEL
     UNPACK_RAW_AP
     EXTRACT_OS_PARTITIONS
@@ -786,16 +700,8 @@ EXTRACT_ALL()
     echo
 }
 
-# --------------------------------------------------------------------
-# Validate required variables
-# --------------------------------------------------------------------
-
 : "${FW_DIR:?ERROR: FW_DIR is not set}"
 : "${ODIN_DIR:?ERROR: ODIN_DIR is not set}"
-
-# --------------------------------------------------------------------
-# Build firmware list
-# --------------------------------------------------------------------
 
 FIRMWARE_LIST=()
 
@@ -813,7 +719,6 @@ if [[ -n "${SOURCE_EXTRA_FIRMWARES:-}" ]]; then
     )
 fi
 
-# If the project provides FIRMWARES, preserve compatibility with it.
 if declare -p FIRMWARES >/dev/null 2>&1; then
     if (( ${#FIRMWARES[@]} > 0 )); then
         FIRMWARE_LIST=()
@@ -829,10 +734,6 @@ if (( ${#FIRMWARE_LIST[@]} == 0 )); then
     echo "Expected SOURCE_FIRMWARE, SOURCE_EXTRA_FIRMWARES or FIRMWARES."
     exit 1
 fi
-
-# --------------------------------------------------------------------
-# Main
-# --------------------------------------------------------------------
 
 for i in "${FIRMWARE_LIST[@]}"; do
 
