@@ -58,8 +58,8 @@ COPY_SOURCE_FIRMWARE()
     if [ ! -d "$WORK_DIR/system" ]; then
         mkdir -p "$WORK_DIR/system"
         SAFE_CP_DIR "$SRC_DIR_FW/system" "$WORK_DIR"
-        SAFE_CP "$SRC_DIR_FW/file_context-system" "$WORK_DIR/configs/file_context-system"
-        SAFE_CP "$SRC_DIR_FW/fs_config-system" "$WORK_DIR/configs/fs_config-system"
+        SAFE_CP "$SRC_DIR_FW/configs/file_context-system" "$WORK_DIR/configs/file_context-system"
+        SAFE_CP "$SRC_DIR_FW/configs/fs_config-system" "$WORK_DIR/configs/fs_config-system"
     fi
 
 # Differentiate system_ext & product status
@@ -75,11 +75,11 @@ COPY_SOURCE_FIRMWARE()
                 echo "/system_ext u:object_r:system_file:s0" >> "$WORK_DIR/configs/file_context-system"
                 echo "system_ext 0 0 644 capabilities=0x0" >> "$WORK_DIR/configs/fs_config-system"
                 {
-                    sed "s/^\/system_ext/\/system\/system_ext/g" "$SRC_DIR_FW/file_context-system_ext"
+                    sed "s/^\/system_ext/\/system\/system_ext/g" "$SRC_DIR_FW/configs/file_context-system_ext"
                 } >> "$WORK_DIR/configs/file_context-system"
                 echo "system/system_ext 0 0 755 capabilities=0x0" >> "$WORK_DIR/configs/fs_config-system"
                 {
-                    sed "1d" "$SRC_DIR_FW/fs_config-system_ext" | sed "s/^system_ext/system\/system_ext/g"
+                    sed "1d" "$SRC_DIR_FW/configs/fs_config-system_ext" | sed "s/^system_ext/system\/system_ext/g"
                 } >> "$WORK_DIR/configs/fs_config-system"
                 rm -f "$WORK_DIR/system/system/system_ext/etc/NOTICE.xml.gz"
                 sed -i '/system\/system_ext\/etc\/NOTICE\\.xml\\.gz/d' "$WORK_DIR/configs/file_context-system"
@@ -94,8 +94,8 @@ COPY_SOURCE_FIRMWARE()
         elif [ ! -d "$WORK_DIR/system_ext" ]; then
             mkdir -p "$WORK_DIR/system_ext"
             SAFE_CP_DIR "$SRC_DIR_FW/system_ext" "$WORK_DIR"
-            SAFE_CP "$SRC_DIR_FW/file_context-system_ext" "$WORK_DIR/configs/file_context-system_ext"
-            SAFE_CP "$SRC_DIR_FW/fs_config-system_ext" "$WORK_DIR/configs/fs_config-system_ext"
+            SAFE_CP "$SRC_DIR_FW/configs/file_context-system_ext" "$WORK_DIR/configs/file_context-system_ext"
+            SAFE_CP "$SRC_DIR_FW/configs/fs_config-system_ext" "$WORK_DIR/configs/fs_config-system_ext"
         fi
     else
         if $TARGET_HAS_SYSTEM_EXT; then
@@ -106,8 +106,8 @@ COPY_SOURCE_FIRMWARE()
             mkdir -p "$WORK_DIR/system/system_ext"
             ln -s "/system_ext" "$WORK_DIR/system/system/system_ext"
             # Create system_ext filesystem configs file by extracting them from system config
-            grep 'system_ext' "$SRC_DIR_FW/fs_config-system" | sed 's/^system\///' | sed '/system_ext 0 0 644 capabilities/d' | sed '/system_ext 0 0 755 capabilities/d' >> "$WORK_DIR/configs/fs_config-system_ext"
-            grep 'system_ext' "$SRC_DIR_FW/file_context-system" | sed '/system_ext u:object_r:system_file:s0/d' | sed 's/^\/system//' >> "$WORK_DIR/configs/file_context-system_ext"
+            grep 'system_ext' "$SRC_DIR_FW/configs/fs_config-system" | sed 's/^system\///' | sed '/system_ext 0 0 644 capabilities/d' | sed '/system_ext 0 0 755 capabilities/d' >> "$WORK_DIR/configs/fs_config-system_ext"
+            grep 'system_ext' "$SRC_DIR_FW/configs/file_context-system" | sed '/system_ext u:object_r:system_file:s0/d' | sed 's/^\/system//' >> "$WORK_DIR/configs/file_context-system_ext"
             # Remove all old system_ext references in system
             sed -i '/system_ext/d' "$WORK_DIR/configs/fs_config-system"
             sed -i '/system_ext/d' "$WORK_DIR/configs/file_context-system"
@@ -134,11 +134,11 @@ COPY_SOURCE_FIRMWARE()
                 echo "/product u:object_r:system_file:s0" >> "$WORK_DIR/configs/file_context-system"
                 echo "product 0 0 644 capabilities=0x0" >> "$WORK_DIR/configs/fs_config-system"
                 {
-                    sed "s/^\/product/\/system\/product/g" "$SRC_DIR_FW/file_context-product"
+                    sed "s/^\/product/\/system\/product/g" "$SRC_DIR_FW/configs/file_context-product"
                 } >> "$WORK_DIR/configs/file_context-system"
                 echo "system/product 0 0 755 capabilities=0x0" >> "$WORK_DIR/configs/fs_config-system"
                 {
-                    sed "1d" "$SRC_DIR_FW/fs_config-product" | sed "s/^product/system\/product/g"
+                    sed "1d" "$SRC_DIR_FW/configs/fs_config-product" | sed "s/^product/system\/product/g"
                 } >> "$WORK_DIR/configs/fs_config-system"
                 rm -f "$WORK_DIR/system/system/product/etc/NOTICE.xml.gz"
                 sed -i '/system\/product\/etc\/NOTICE\\.xml\\.gz/d' "$WORK_DIR/configs/file_context-system"
@@ -153,8 +153,8 @@ COPY_SOURCE_FIRMWARE()
         elif [ ! -d "$WORK_DIR/product" ]; then
             mkdir -p "$WORK_DIR/product"
             SAFE_CP_DIR "$SRC_DIR_FW/product" "$WORK_DIR"
-            SAFE_CP "$SRC_DIR_FW/file_context-product" "$WORK_DIR/configs/file_context-product"
-            SAFE_CP "$SRC_DIR_FW/fs_config-product" "$WORK_DIR/configs/fs_config-product"
+            SAFE_CP "$SRC_DIR_FW/configs/file_context-product" "$WORK_DIR/configs/file_context-product"
+            SAFE_CP "$SRC_DIR_FW/configs/fs_config-product" "$WORK_DIR/configs/fs_config-product"
         fi
     else
         if $TARGET_HAS_PRODUCT; then
@@ -165,8 +165,8 @@ COPY_SOURCE_FIRMWARE()
             mkdir -p "$WORK_DIR/system/product"
             ln -s "/product" "$WORK_DIR/system/system/product"
             # Create product filesystem configs file by extracting them from system config
-            grep 'product' "$SRC_DIR_FW/fs_config-system" | sed 's/^system\///' | sed '/product 0 0 644 capabilities/d' | sed '/product 0 0 755 capabilities/d' >> "$WORK_DIR/configs/fs_config-product"
-            grep 'product' "$SRC_DIR_FW/file_context-system" | sed '/product u:object_r:system_file:s0/d' | sed 's/^\/system//' >> "$WORK_DIR/configs/file_context-product"
+            grep 'product' "$SRC_DIR_FW/configs/fs_config-system" | sed 's/^system\///' | sed '/product 0 0 644 capabilities/d' | sed '/product 0 0 755 capabilities/d' >> "$WORK_DIR/configs/fs_config-product"
+            grep 'product' "$SRC_DIR_FW/configs/file_context-system" | sed '/product u:object_r:system_file:s0/d' | sed 's/^\/system//' >> "$WORK_DIR/configs/file_context-product"
             # Remove all old product references in system
             sed -i '/product/d' "$WORK_DIR/configs/fs_config-system"
             sed -i '/product/d' "$WORK_DIR/configs/file_context-system"
