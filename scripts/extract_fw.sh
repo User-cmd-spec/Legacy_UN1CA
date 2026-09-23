@@ -598,34 +598,20 @@ MOVE_CONFIGS()
 
     mkdir -p "$CONFIGS_DIR"
 
-    echo "- Moving generated configs to:"
-    echo "  $CONFIGS_DIR"
+    echo "- Moving generated configs to: $CONFIGS_DIR"
 
     shopt -s nullglob
-
     local configs=(
         file_context-*
         fs_config-*
     )
-
     shopt -u nullglob
 
     for cfg in "${configs[@]}"; do
-
         [[ -f "$cfg" ]] || continue
+        [[ -L "$cfg" ]] && continue
 
-        if [[ -L "$cfg" ]]; then
-            continue
-        fi
-
-        mv \
-            -f \
-            "$cfg" \
-            "$CONFIGS_DIR/"
-
-        ln -sfn \
-            "$CONFIGS_DIR/$cfg" \
-            "$cfg"
+        mv -f "$cfg" "$CONFIGS_DIR/"
     done
 }
 
